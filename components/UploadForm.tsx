@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SCHOOLS, MATERIAL_TYPES, moderateUpload, MaterialType, StudyMaterial } from "@/lib/mockData";
-import { Upload, FileText, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2, Camera, Sparkles } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2, Camera, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 
 interface UploadFormProps {
@@ -243,8 +243,8 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
             <li>Current or recent exam questions</li>
             <li>Answer keys or teacher editions</li>
             <li>Graded student work</li>
-            <li>Private teacher documents</li>
-            <li>Files containing personal student info</li>
+            <li>Private teacher materials</li>
+            <li>Photos containing personal student info</li>
           </ul>
         </div>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-[#1a1b2e] border border-[#2a2b45] hover:border-indigo-500/40 text-white font-semibold text-sm transition-all">
@@ -309,7 +309,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
                 <div className="rounded-3xl border border-white/10 bg-black/70 p-5">
                   <p className="text-sm text-white">{cameraError}</p>
                   <button type="button" onClick={() => fileRef.current?.click()} className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-medium text-black">
-                    Upload photo
+                    Pick photo
                   </button>
                 </div>
               </div>
@@ -328,7 +328,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         </div>
       )}
 
-      {/* File */}
+      {/* Photo */}
       <div>
         <label className="block text-xs font-semibold text-slate-500 mb-2">Page</label>
         <div
@@ -342,7 +342,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         >
           {file ? (
             <div className="flex items-center justify-center gap-3">
-              <FileText size={20} className="text-indigo-400" />
+              <ScanText size={20} className="text-cyan-300" />
               <div className="text-left">
                 <p className="text-sm text-white font-medium">{file.name}</p>
                 <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
@@ -365,12 +365,12 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
           ) : (
             <>
               <Upload size={22} className="text-slate-600 mx-auto mb-2" />
-              <p className="text-sm text-slate-400 font-medium">Or upload a photo/file</p>
-              <p className="text-xs text-slate-600 mt-1">Images OCR automatically · PDFs go to review</p>
+              <p className="text-sm text-slate-400 font-medium">Or upload a photo</p>
+              <p className="text-xs text-slate-600 mt-1">Photos OCR automatically</p>
             </>
           )}
         </div>
-        <input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" onChange={handleFile} className="hidden" />
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" onChange={handleFile} className="hidden" />
 
         {file && (
           <div className="mt-3 rounded-2xl border border-[#2a2b45] bg-[#101522] p-4">
@@ -407,7 +407,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
 
             {scanState === "unsupported" && (
               <p className="text-xs leading-relaxed text-amber-300/80">
-                Browser scanning is enabled for photos/images right now. PDFs still upload to review, but live text extraction needs backend OCR.
+                Locker only takes photos from the camera or photo library.
               </p>
             )}
 
@@ -489,7 +489,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
 
       {/* Review notice */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-slate-500">
-        Reviewed before public. Current tests, answer keys, private docs, and personal info stay blocked.
+        Reviewed before public. Current tests, answer keys, private materials, and personal info stay blocked.
       </div>
 
       <button
@@ -502,7 +502,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         </div>
       ) : (
         <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-sm leading-6 text-slate-500">
-          Scan or upload the page first. Manual details unlock after Locker has the document.
+          Scan a page or pick a photo first. Manual details unlock after Locker has the image.
         </div>
       )}
     </form>
