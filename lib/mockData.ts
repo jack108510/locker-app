@@ -34,6 +34,31 @@ export interface School {
 
 export const SCHOOLS: School[] = [
   {
+    id: "halifax-west-hs",
+    name: "Halifax West High School",
+    courses: ["Chemistry 12", "Biology 11", "Pre-Calculus 12", "English 12", "Canadian History"],
+  },
+  {
+    id: "citadel-hs",
+    name: "Citadel High School",
+    courses: ["IB Biology", "Math 11", "English 11", "World History", "Physics 12"],
+  },
+  {
+    id: "auburn-drive-hs",
+    name: "Auburn Drive High School",
+    courses: ["Chemistry 11", "Math 10", "Global Geography", "English 10", "Law 12"],
+  },
+  {
+    id: "prince-andrew-hs",
+    name: "Prince Andrew High School",
+    courses: ["Biology 12", "Advanced Math 12", "English 12", "Economics", "Physics 11"],
+  },
+  {
+    id: "dartmouth-hs",
+    name: "Dartmouth High School",
+    courses: ["Math 11", "Chemistry 12", "English 11", "Canadian History", "Biology 11"],
+  },
+  {
     id: "lincoln-hs",
     name: "Lincoln High School",
     courses: ["AP Chemistry", "AP US History", "Pre-Calculus", "AP English", "AP Biology", "Economics"],
@@ -65,6 +90,52 @@ export const MATERIAL_TYPES: { value: MaterialType; label: string; emoji: string
 ];
 
 export const APPROVED_MATERIALS: StudyMaterial[] = [
+  {
+    id: "h1",
+    title: "Chemistry 12 Bonding Review Sheet",
+    type: "study-guide",
+    school: "Halifax West High School",
+    course: "Chemistry 12",
+    teacher: "Ms. Clarke",
+    pseudonym: "HarbourFox42",
+    uploadedAt: "2024-01-16",
+    upvotes: 58,
+    saves: 34,
+    status: "approved",
+    tags: ["bonding", "VSEPR", "intermolecular forces"],
+    preview: "Clean review sheet for bonding, polarity, molecular shapes, and intermolecular forces. Built from class notes and textbook examples.",
+    pages: 7,
+  },
+  {
+    id: "h2",
+    title: "Biology 11 Cell Unit Notes",
+    type: "notes",
+    school: "Halifax West High School",
+    course: "Biology 11",
+    pseudonym: "NorthOwl19",
+    uploadedAt: "2024-01-16",
+    upvotes: 41,
+    saves: 29,
+    status: "approved",
+    tags: ["cells", "organelles", "microscope", "membranes"],
+    preview: "Student-made cell biology notes covering organelles, membrane transport, microscope terms, and diagrams for quick studying.",
+    pages: 9,
+  },
+  {
+    id: "h3",
+    title: "Citadel Math 11 Functions Practice Pack",
+    type: "practice-questions",
+    school: "Citadel High School",
+    course: "Math 11",
+    pseudonym: "FogHawk77",
+    uploadedAt: "2024-01-15",
+    upvotes: 36,
+    saves: 22,
+    status: "approved",
+    tags: ["functions", "quadratics", "graphs", "domain"],
+    preview: "Self-made practice questions for functions, transformations, graphing, and domain/range. Includes worked examples.",
+    pages: 11,
+  },
   {
     id: "1",
     title: "AP Chemistry Unit 4 - Chemical Reactions Notes",

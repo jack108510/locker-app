@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { generatePseudonym } from "@/lib/mockData";
 import { LockerIcon } from "@/components/Logo";
 import { RefreshCw, Eye, EyeOff, ArrowRight, MapPin, Loader2 } from "lucide-react";
@@ -8,14 +8,6 @@ import { RefreshCw, Eye, EyeOff, ArrowRight, MapPin, Loader2 } from "lucide-reac
 interface OnboardingModalProps {
   onComplete: (pseudonym: string, school: string) => void;
 }
-
-const SCHOOLS = [
-  "Lincoln High School",
-  "Riverside High School",
-  "Westview High School",
-  "Central High School",
-  "Other / Type below",
-];
 
 const LOCATION_FALLBACK_SCHOOLS = [
   "Halifax West High School",
@@ -33,7 +25,6 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
   const [pseudonym, setPseudonym] = useState("");
   const [school, setSchool] = useState("");
-  const [customSchool, setCustomSchool] = useState("");
   const [showWhat, setShowWhat] = useState(false);
   const [nearbySchools, setNearbySchools] = useState<NearbySchool[]>([]);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -45,16 +36,20 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
   const reroll = () => setPseudonym(generatePseudonym());
 
-  const getNearbySchools = async () => {
+  const setFallbackSchools = (message: string) => {
+    setNearbySchools(LOCATION_FALLBACK_SCHOOLS.map((name) => ({ name })));
+    setLocationStatus("error");
+    setLocationMessage(message);
+  };
+
+  const getNearbySchools = useCallback(async () => {
     if (!navigator.geolocation) {
-      setLocationStatus("error");
-      setLocationMessage("Location is not available in this browser. Showing examples instead.");
-      setNearbySchools(LOCATION_FALLBACK_SCHOOLS.map((name) => ({ name })));
+      setFallbackSchools("Location is not available in this browser. Showing nearby examples instead.");
       return;
     }
 
     setLocationStatus("loading");
-    setLocationMessage("Using your location once to look for nearby schools…");
+    setLocationMessage("Checking your area for nearby schools…");
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -90,33 +85,33 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
           setNearbySchools((names.length ? names : LOCATION_FALLBACK_SCHOOLS).map((name) => ({ name })));
           setLocationStatus("success");
-          setLocationMessage("Location cleared. Pick a school below or type your own.");
+          setLocationMessage("Location cleared. Pick the school closest to you.");
         } catch {
-          setNearbySchools(LOCATION_FALLBACK_SCHOOLS.map((name) => ({ name })));
-          setLocationStatus("error");
-          setLocationMessage("Couldn’t reach the school lookup. Showing examples — you can still type your school.");
+          setFallbackSchools("School lookup timed out. Showing nearby examples instead.");
         }
       },
       () => {
-        setNearbySchools(LOCATION_FALLBACK_SCHOOLS.map((name) => ({ name })));
-        setLocationStatus("error");
-        setLocationMessage("Location wasn’t shared. Showing examples — you can still type your school.");
+        setFallbackSchools("Location wasn’t shared. Showing nearby examples instead.");
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
     );
-  };
+  }, []);
+
+  useEffect(() => {
+    if (step === 2 && locationStatus === "idle") {
+      void getNearbySchools();
+    }
+  }, [step, locationStatus, getNearbySchools]);
 
   const handleContinue = () => {
     if (step === 1) { setStep(2); return; }
-    const finalSchool = school === "Other / Type below" ? customSchool : school;
-    if (!finalSchool) return;
-    onComplete(pseudonym, finalSchool);
+    if (!school) return;
+    onComplete(pseudonym, school);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 modal-backdrop bg-black/70 overflow-y-auto">
       <div className="w-full max-w-sm max-h-[92vh] overflow-y-auto bg-[#12131f] border border-[#2a2b45] rounded-3xl p-6 animate-slide-up shadow-2xl">
-        {/* Step 1 — pseudonym */}
         {step === 1 && (
           <>
             <div className="flex justify-center mb-5">
@@ -153,7 +148,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 mb-4 text-sm text-emerald-300 space-y-1">
                 <p>✓ Nothing. No account, no email, no name.</p>
                 <p>✓ Aliases are random — not linked to your device.</p>
-                <p>✓ IP addresses are never stored or logged.</p>
+                <p>✓ Location is only used once to suggest nearby schools.</p>
               </div>
             )}
 
@@ -166,32 +161,33 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           </>
         )}
 
-        {/* Step 2 — pick school */}
         {step === 2 && (
           <>
-            <h2 className="text-xl font-bold text-white mb-1">Pick your school</h2>
+            <h2 className="text-xl font-bold text-white mb-1">Schools near you</h2>
             <p className="text-slate-400 text-sm mb-5">
-              Used to filter the feed. Not tied to your identity.
+              Locker uses your area to show nearby schools. Pick one to enter the feed.
             </p>
 
-            <div className="mb-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-3">
+            <div className="mb-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 rounded-xl bg-cyan-400/10 p-2 text-cyan-300">
-                  <MapPin size={16} />
+                  {locationStatus === "loading" ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-cyan-100">Find schools near me</p>
-                  <p className="mt-1 text-xs leading-relaxed text-cyan-100/60">
-                    Optional. Your location is used once in this browser to suggest schools, then cleared. Locker does not save it.
+                  <p className="text-sm font-semibold text-cyan-100">
+                    {locationStatus === "loading" ? "Finding nearby schools…" : "Location-based school list"}
                   </p>
-                  <button
-                    onClick={getNearbySchools}
-                    disabled={locationStatus === "loading"}
-                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-400/15 disabled:opacity-50"
-                  >
-                    {locationStatus === "loading" ? <Loader2 size={13} className="animate-spin" /> : <MapPin size={13} />}
-                    {locationStatus === "loading" ? "Checking nearby…" : "Use my location once"}
-                  </button>
+                  <p className="mt-1 text-xs leading-relaxed text-cyan-100/60">
+                    Location is used only in this browser for school suggestions. It is not saved to your account, upload, or profile.
+                  </p>
+                  {locationStatus !== "loading" && (
+                    <button
+                      onClick={getNearbySchools}
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-400/15"
+                    >
+                      <MapPin size={13} /> Refresh nearby schools
+                    </button>
+                  )}
                 </div>
               </div>
               {locationMessage && (
@@ -201,10 +197,14 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               )}
             </div>
 
-            {nearbySchools.length > 0 && (
-              <div className="mb-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Nearby suggestions</p>
-                <div className="space-y-2">
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Nearby suggestions</p>
+              {nearbySchools.length === 0 ? (
+                <div className="rounded-xl border border-[#2a2b45] bg-[#1a1b2e] px-4 py-6 text-center text-sm text-slate-500">
+                  Waiting for location permission…
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-36 overflow-y-auto pr-1 pb-2">
                   {nearbySchools.map((s) => (
                     <button
                       key={s.name}
@@ -219,35 +219,13 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-            <div className="space-y-2 mb-4">
-              {SCHOOLS.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSchool(s)}
-                  className={`w-full text-left px-4 py-3 rounded-xl border transition-all text-sm font-medium ${
-                    school === s
-                      ? "border-indigo-500 bg-indigo-500/10 text-indigo-300"
-                      : "border-[#2a2b45] bg-[#1a1b2e] text-slate-300 hover:border-indigo-500/40"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
+              )}
             </div>
-            {school === "Other / Type below" && (
-              <input
-                className="w-full px-4 py-3 rounded-xl bg-[#1a1b2e] border border-[#2a2b45] text-white placeholder-slate-500 text-sm mb-4 focus:border-indigo-500 transition-colors"
-                placeholder="Type your school name…"
-                value={customSchool}
-                onChange={(e) => setCustomSchool(e.target.value)}
-              />
-            )}
+
             <button
               onClick={handleContinue}
-              disabled={!school || (school === "Other / Type below" && !customSchool)}
-              className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold transition-all flex items-center justify-center gap-2"
+              disabled={!school}
+              className="mt-3 w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/30"
             >
               Enter Locker <ArrowRight size={16} />
             </button>
