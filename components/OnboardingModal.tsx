@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { generatePseudonym } from "@/lib/mockData";
 import { LockerIcon } from "@/components/Logo";
 import { RefreshCw, Eye, EyeOff, ArrowRight, MapPin, Loader2 } from "lucide-react";
@@ -23,16 +23,12 @@ type NearbySchool = {
 
 export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
-  const [pseudonym, setPseudonym] = useState("");
+  const [pseudonym, setPseudonym] = useState("BlueFox42");
   const [school, setSchool] = useState("");
   const [showWhat, setShowWhat] = useState(false);
   const [nearbySchools, setNearbySchools] = useState<NearbySchool[]>([]);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [locationMessage, setLocationMessage] = useState("");
-
-  useEffect(() => {
-    setPseudonym(generatePseudonym());
-  }, []);
 
   const reroll = () => setPseudonym(generatePseudonym());
 
@@ -97,14 +93,13 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     );
   }, []);
 
-  useEffect(() => {
-    if (step === 2 && locationStatus === "idle") {
-      void getNearbySchools();
-    }
-  }, [step, locationStatus, getNearbySchools]);
 
   const handleContinue = () => {
-    if (step === 1) { setStep(2); return; }
+    if (step === 1) {
+      setStep(2);
+      void getNearbySchools();
+      return;
+    }
     if (!school) return;
     onComplete(pseudonym, school);
   };

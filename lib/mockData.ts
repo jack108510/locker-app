@@ -269,15 +269,18 @@ const RISKY_KEYWORDS = [
 
 export function moderateUpload(
   title: string,
-  type: MaterialType
+  type: MaterialType,
+  scannedText = ""
 ): { status: ModerationStatus; reason?: string } {
   const lowerTitle = title.toLowerCase();
+  const lowerScan = scannedText.toLowerCase();
+  const reviewText = `${lowerTitle}\n${lowerScan}`;
 
   for (const kw of RISKY_KEYWORDS) {
-    if (lowerTitle.includes(kw)) {
+    if (reviewText.includes(kw)) {
       return {
         status: "blocked",
-        reason: `Title contains prohibited keyword: "${kw}". Private exams, answer keys, and graded materials cannot be uploaded.`,
+        reason: `Upload text contains prohibited keyword: "${kw}". Private exams, answer keys, and graded materials cannot be uploaded.`,
       };
     }
   }
