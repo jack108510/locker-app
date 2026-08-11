@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SCHOOLS, MATERIAL_TYPES, moderateUpload, MaterialType, StudyMaterial } from "@/lib/mockData";
-import { Upload, FileText, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2 } from "lucide-react";
+import { Upload, FileText, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2, Camera, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 
 interface UploadFormProps {
@@ -27,6 +27,13 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
   const [state, setState] = useState<SubmitState>("idle");
   const [moderationResult, setModerationResult] = useState<{ status: string; reason?: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState("");
+  const [capturing, setCapturing] = useState(false);
 
   const schoolOptions = currentSchool && !SCHOOLS.some((s) => s.name === currentSchool)
     ? [{ id: "current-school", name: currentSchool, courses: [] }, ...SCHOOLS]
@@ -35,6 +42,74 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
   const selectedSchool = schoolOptions.find((s) => s.name === school);
   const courses = selectedSchool?.courses ?? [];
   const canSubmit = type && school && title && file && scanState !== "scanning";
+
+  const stopScanner = () => {
+    document.body.classList.remove("locker-scanning");
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setScannerOpen(false);
+    setCameraReady(false);
+    setCameraError("");
+    setCapturing(false);
+  };
+
+  useEffect(() => () => stopScanner(), []);
+
+  const startScanner = async () => {
+    setScannerOpen(true);
+    document.body.classList.add("locker-scanning");
+    setCameraError("");
+    setCameraReady(false);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Camera scanning is not available in this browser.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 1800 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        setCameraReady(true);
+      }
+    } catch {
+      setCameraError("Camera permission was blocked. Use photo upload instead.");
+    }
+  };
+
+  const captureLivePage = async () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || !cameraReady) return;
+
+    setCapturing(true);
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 1800;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      setCapturing(false);
+      return;
+    }
+
+    ctx.drawImage(video, 0, 0, w, h);
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setCapturing(false);
+        return;
+      }
+      const liveFile = new File([blob], `locker-scan-${Date.now()}.jpg`, { type: "image/jpeg" });
+      setFile(liveFile);
+      stopScanner();
+      void scanFile(liveFile).finally(() => setCapturing(false));
+    }, "image/jpeg", 0.92);
+  };
 
   const scanFile = async (selectedFile: File) => {
     setScannedText("");
@@ -182,9 +257,76 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
   return (
     <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
       <div>
-        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Scan a page</h2>
-        <p className="text-sm text-slate-500">Add a photo. Locker pulls the text and reviews it.</p>
+        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Live scan</h2>
+        <p className="text-sm text-slate-500">Point your camera at a page. Locker pulls the text directly off it.</p>
       </div>
+
+      <button
+        type="button"
+        onClick={startScanner}
+        className="relative overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-cyan-300/[0.06] p-5 text-left transition active:scale-[0.99]"
+      >
+        <div className="absolute inset-x-6 top-1/2 h-px bg-cyan-200/50 shadow-[0_0_28px_rgba(103,232,249,0.9)]" />
+        <div className="relative flex items-center justify-between gap-5">
+          <div>
+            <div className="mb-3 inline-flex rounded-full bg-cyan-300/10 px-3 py-1 text-[11px] font-medium text-cyan-200">
+              live camera OCR
+            </div>
+            <p className="text-lg font-medium text-white">Scan with camera</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">Live viewfinder, capture frame, extract text.</p>
+          </div>
+          <div className="rounded-full bg-white text-black p-4">
+            <Camera size={20} />
+          </div>
+        </div>
+      </button>
+
+      {scannerOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/95 p-5">
+          <div className="mx-auto flex h-full max-w-md flex-col">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">Hold page inside frame</p>
+              <p className="text-xs text-slate-500">Like Wallet scan — capture when the page is sharp.</p>
+            </div>
+            <button type="button" onClick={stopScanner} className="rounded-full bg-white/10 p-2 text-white">
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="relative flex-1 overflow-hidden rounded-[2rem] border border-white/10 bg-[#08090d]">
+            <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+            <canvas ref={canvasRef} className="hidden" />
+            <div className="absolute inset-6 rounded-[1.5rem] border border-cyan-200/70 shadow-[0_0_0_999px_rgba(0,0,0,0.35)]" />
+            <div className="absolute left-8 right-8 top-1/2 h-0.5 bg-cyan-200 shadow-[0_0_24px_rgba(103,232,249,0.95)] animate-pulse" />
+            <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/10 bg-black/50 p-3 backdrop-blur">
+              <div className="flex items-center gap-2 text-xs text-cyan-100">
+                <Sparkles size={14} /> Detecting page edges + printed text
+              </div>
+            </div>
+            {cameraError && (
+              <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
+                <div className="rounded-3xl border border-white/10 bg-black/70 p-5">
+                  <p className="text-sm text-white">{cameraError}</p>
+                  <button type="button" onClick={() => fileRef.current?.click()} className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-medium text-black">
+                    Upload photo
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={captureLivePage}
+            disabled={!cameraReady || capturing}
+            className="mt-5 rounded-full bg-white py-4 text-sm font-semibold text-black disabled:opacity-40"
+          >
+            {capturing ? "Capturing…" : "Capture text"}
+          </button>
+          </div>
+        </div>
+      )}
 
       {/* Type */}
       <div>
@@ -281,9 +423,9 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
             </div>
           ) : (
             <>
-              <Upload size={24} className="text-slate-600 mx-auto mb-2" />
-              <p className="text-sm text-slate-400 font-medium">Tap to scan/upload pages</p>
-              <p className="text-xs text-slate-600 mt-1">Photos get OCR text extraction · PDFs go to review</p>
+              <Upload size={22} className="text-slate-600 mx-auto mb-2" />
+              <p className="text-sm text-slate-400 font-medium">Or upload a photo/file</p>
+              <p className="text-xs text-slate-600 mt-1">Images OCR automatically · PDFs go to review</p>
             </>
           )}
         </div>

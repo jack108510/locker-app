@@ -38,6 +38,10 @@ body {
   scrollbar-width: none;
 }
 
+body.locker-scanning nav {
+  display: none;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
