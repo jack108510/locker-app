@@ -10,10 +10,7 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { UploadForm } from "@/components/UploadForm";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { APPROVED_MATERIALS, StudyMaterial } from "@/lib/mockData";
-import {
-  BookOpen, Lock, Users, ShieldCheck, Upload,
-  ArrowRight, Star, Zap, Eye
-} from "lucide-react";
+import { BookOpen, ArrowRight, MapPin, ScanText } from "lucide-react";
 
 export default function Home() {
   const [onboarded, setOnboarded] = useState(false);
@@ -64,33 +61,31 @@ export default function Home() {
         <DocumentViewer material={viewingMaterial} onClose={() => setViewingMaterial(null)} />
       )}
 
-      <div className="min-h-screen flex flex-col max-w-lg mx-auto">
+      <div className="min-h-screen flex flex-col max-w-md mx-auto bg-[#08090d]">
         {/* Top bar */}
-        <header className="sticky top-0 z-40 bg-[#0a0b14]/90 glass border-b border-[#2a2b45] px-4 py-3">
+        <header className="sticky top-0 z-40 bg-[#08090d]/85 glass px-5 py-4">
           <div className="flex items-center justify-between">
             <Logo size="sm" />
-            {onboarded && (
-              <div className="flex items-center gap-2">
-                <div className="flex flex-col items-end gap-1">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1a1b2e] border border-[#2a2b45]">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-slow" />
-                    <span className="text-xs text-slate-400 font-mono">{pseudonym}</span>
-                  </div>
-                  {mySchool && <span className="text-[10px] text-slate-600 pr-1">{mySchool}</span>}
-                </div>
+            {onboarded && mySchool && (
+              <div className="max-w-[180px] truncate rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-400">
+                {mySchool.replace(" High School", "")}
               </div>
             )}
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 px-4 pt-4 pb-nav overflow-y-auto">
+        <main className="flex-1 px-5 pt-2 pb-nav overflow-y-auto">
           {tab === "home" && (
             <LandingView onGetStarted={() => setTab("browse")} onboard={!onboarded ? undefined : () => setTab("browse")} />
           )}
 
           {tab === "browse" && (
-            <div className="space-y-4">
+            <div className="space-y-5">
+              <div className="space-y-1">
+                <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white">Your feed</h1>
+                <p className="text-sm text-slate-500">Clean study material near {mySchool.replace(" High School", "") || "you"}.</p>
+              </div>
               <SearchFilter
                 school={filterSchool}
                 onSchoolChange={(s) => { setFilterSchool(s); setFilterCourse("all"); }}
@@ -115,7 +110,7 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-600">{filteredMaterials.length} material{filteredMaterials.length !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-slate-600">{filteredMaterials.length} found</p>
                   {filteredMaterials.map((m) => (
                     <MaterialCard key={m.id} material={m} onOpen={setViewingMaterial} />
                   ))}
@@ -146,129 +141,46 @@ export default function Home() {
 
 function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onboard?: () => void }) {
   return (
-    <div className="space-y-10 animate-slide-up">
-      {/* Hero */}
-      <section className="pt-8 pb-4 text-center space-y-5">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-400 font-semibold">
-          <Zap size={12} fill="currentColor" /> Anonymous by default
-        </div>
-        <div>
-          <h1 className="text-4xl font-black text-white leading-tight mb-3">
-            Your school&apos;s<br />
-            <span className="gradient-text">study stash.</span>
-          </h1>
-          <p className="text-slate-400 text-base leading-relaxed max-w-xs mx-auto">
-            Drop notes, study guides, and flashcards. Stay anonymous. Everything gets reviewed before it goes live.
-          </p>
-        </div>
-        <button
-          onClick={onboard ?? onGetStarted}
-          className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-base transition-all shadow-lg shadow-indigo-500/25"
-        >
-          Open your locker <ArrowRight size={18} />
-        </button>
-        <p className="text-xs text-slate-600">No account. No email. Just pick an alias.</p>
-      </section>
+    <div className="animate-slide-up pt-8">
+      <section className="min-h-[72vh] flex flex-col justify-between">
+        <div className="space-y-7">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-400">
+            <MapPin size={13} /> Near your school
+          </div>
 
-      {/* How it works */}
-      <section>
-        <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-4">How it works</p>
-        <div className="space-y-3">
-          {[
-            { step: "1", title: "Get an alias", body: "You're assigned a random handle like CoolMoose55. No name, no email, no tracking.", icon: <Users size={18} className="text-indigo-400" /> },
-            { step: "2", title: "Browse or drop", body: "Search by school, course, or type. Upload notes, guides, and flashcards to share.", icon: <Upload size={18} className="text-purple-400" /> },
-            { step: "3", title: "Review before live", body: "Uploads enter a private queue. Prohibited material — exams, answer keys — is blocked automatically.", icon: <ShieldCheck size={18} className="text-emerald-400" /> },
-          ].map(({ step, title, body, icon }) => (
-            <div key={step} className="flex gap-4 bg-[#12131f] border border-[#2a2b45] rounded-2xl p-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-[#1a1b2e] flex items-center justify-center">
-                {icon}
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white mb-0.5">{title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* What gets dropped */}
-      <section>
-        <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-4">What gets dropped</p>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { emoji: "📝", label: "Class notes" },
-            { emoji: "📚", label: "Study guides" },
-            { emoji: "🃏", label: "Flashcards" },
-            { emoji: "❓", label: "Practice Qs" },
-            { emoji: "📋", label: "Summaries" },
-            { emoji: "🎯", label: "Released prep" },
-          ].map(({ emoji, label }) => (
-            <div key={label} className="flex items-center gap-2.5 bg-[#12131f] border border-[#2a2b45] rounded-xl px-3 py-2.5">
-              <span className="text-lg">{emoji}</span>
-              <span className="text-xs text-slate-300 font-medium">{label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* What doesn't */}
-      <section>
-        <p className="text-xs text-slate-500 uppercase tracking-widest font-semibold mb-4">What&apos;s blocked</p>
-        <div className="bg-[#12131f] border border-red-500/15 rounded-2xl p-4 space-y-2">
-          {[
-            "Current or recent exam questions",
-            "Answer keys or teacher editions",
-            "Graded student work",
-            "Private teacher documents",
-            "Files with personal student info",
-          ].map((item) => (
-            <div key={item} className="flex items-center gap-2.5 text-xs text-slate-500">
-              <span className="text-red-500 flex-shrink-0">✕</span>
-              {item}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Anonymous section */}
-      <section className="bg-gradient-to-br from-indigo-900/30 to-purple-900/20 border border-indigo-500/20 rounded-3xl p-6 text-center space-y-3">
-        <Lock size={28} className="mx-auto text-indigo-400" strokeWidth={1.5} />
-        <h2 className="text-lg font-bold text-white">Anonymous by default</h2>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          No accounts. No emails. Aliases are random and not linked to your device. We don&apos;t store IPs. You&apos;re just a handle.
-        </p>
-        <div className="flex justify-center gap-3 flex-wrap pt-1">
-          {["No account", "No IP stored", "No real name", "Random alias"].map((tag) => (
-            <span key={tag} className="text-xs px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-medium">
-              {tag}
-            </span>
-          ))}
-        </div>
-      </section>
-
-      {/* Test week */}
-      <section className="pb-4">
-        <div className="bg-[#12131f] border border-[#2a2b45] rounded-3xl p-5 flex items-start gap-4">
-          <Star size={28} className="text-amber-400 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
-          <div>
-            <h2 className="text-base font-bold text-white mb-1">Built for test week</h2>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Locker surfaces the highest-upvoted study material for your school and course, right when you need it. Filter by class, sort by votes, and get studying.
+          <div className="space-y-4">
+            <h1 className="text-[3.25rem] font-semibold tracking-[-0.08em] leading-[0.92] text-white">
+              Study stuff.<br />Nearby.
+            </h1>
+            <p className="max-w-[19rem] text-base leading-7 text-slate-400">
+              Locker finds your area, shows nearby schools, and lets students scan notes into a clean study feed.
             </p>
           </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <ScanText className="mb-6 text-cyan-300" size={20} />
+              <p className="text-sm font-medium text-white">Scan pages</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Pull text from photos.</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+              <BookOpen className="mb-6 text-indigo-300" size={20} />
+              <p className="text-sm font-medium text-white">Browse fast</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">Notes from your school.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 pb-6">
+          <button
+            onClick={onboard ?? onGetStarted}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-sm font-semibold text-black transition active:scale-[0.99]"
+          >
+            Open Locker <ArrowRight size={16} />
+          </button>
+          <p className="text-center text-xs text-slate-600">Anonymous alias · location used once · uploads reviewed</p>
         </div>
       </section>
-
-      {/* CTA */}
-      <div className="text-center pb-6">
-        <button
-          onClick={onboard ?? onGetStarted}
-          className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all"
-        >
-          <Eye size={16} /> Browse the feed
-        </button>
-      </div>
     </div>
   );
 }

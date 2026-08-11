@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { Home, Search, Upload } from "lucide-react";
+import { Home, Search, Plus } from "lucide-react";
 
 export type NavTab = "home" | "browse" | "upload" | "admin";
 
@@ -12,14 +12,14 @@ interface BottomNavProps {
 
 const NAV_ITEMS = [
   { id: "home" as NavTab, label: "Home", Icon: Home },
-  { id: "browse" as NavTab, label: "Browse", Icon: Search },
-  { id: "upload" as NavTab, label: "Drop", Icon: Upload },
+  { id: "browse" as NavTab, label: "Find", Icon: Search },
+  { id: "upload" as NavTab, label: "Scan", Icon: Plus },
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass">
-      <div className="flex border-t border-[#2a2b45] bg-[#12131f]/90 max-w-lg mx-auto">
+    <nav className="px-5 pb-4 mt-auto">
+      <div className="mx-auto flex max-w-sm rounded-full border border-white/10 bg-[#111217]/90 p-1.5 shadow-2xl shadow-black/40 glass">
         {NAV_ITEMS.map(({ id, label, Icon }) => {
           const isActive = active === id;
           return (
@@ -27,23 +27,12 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               key={id}
               onClick={() => onChange(id)}
               className={clsx(
-                "flex-1 flex flex-col items-center gap-1 py-3 px-2 transition-all duration-200",
-                isActive
-                  ? "text-indigo-400"
-                  : "text-slate-500 hover:text-slate-300"
+                "flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-3 text-xs font-medium transition",
+                isActive ? "bg-white text-black" : "text-slate-500"
               )}
             >
-              <Icon
-                size={20}
-                strokeWidth={isActive ? 2.5 : 1.75}
-                className={clsx(
-                  "transition-transform duration-200",
-                  isActive && "scale-110"
-                )}
-              />
-              <span className={clsx("text-[10px] font-medium", isActive && "font-semibold")}>
-                {label}
-              </span>
+              <Icon size={15} strokeWidth={2} />
+              {label}
             </button>
           );
         })}

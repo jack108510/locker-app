@@ -182,98 +182,79 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
   return (
     <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
       <div>
-        <h2 className="text-xl font-bold text-white mb-1">Drop study material</h2>
-        <p className="text-sm text-slate-500">Anonymous · reviewed before it&apos;s visible.</p>
+        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Scan a page</h2>
+        <p className="text-sm text-slate-500">Add a photo. Locker pulls the text and reviews it.</p>
       </div>
 
       {/* Type */}
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Material type *</label>
-        <div className="grid grid-cols-2 gap-2">
+        <label className="block text-xs font-semibold text-slate-500 mb-2">Type</label>
+        <div className="-mx-5 overflow-x-auto px-5 no-scrollbar">
+          <div className="flex gap-2 whitespace-nowrap">
           {MATERIAL_TYPES.map((t) => (
             <button
               type="button"
               key={t.value}
               onClick={() => setType(t.value)}
               className={clsx(
-                "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left",
+                "flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-medium transition-all",
                 type === t.value
-                  ? "border-indigo-500 bg-indigo-500/10 text-indigo-300"
-                  : "border-[#2a2b45] bg-[#1a1b2e] text-slate-400 hover:border-indigo-500/30"
+                  ? "bg-white text-black"
+                  : "border border-white/10 bg-white/[0.03] text-slate-400"
               )}
             >
               <span className="text-base">{t.emoji}</span>
               <span className="text-xs leading-tight">{t.label}</span>
             </button>
           ))}
+          </div>
         </div>
       </div>
 
       {/* School */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">School *</label>
-        <select
-          value={school}
-          onChange={(e) => { setSchool(e.target.value); setCourse(""); }}
-          className="w-full px-4 py-3 rounded-xl bg-[#1a1b2e] border border-[#2a2b45] text-sm text-white focus:border-indigo-500 transition-colors appearance-none"
-        >
-          <option value="">Select school…</option>
-          {schoolOptions.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
-        </select>
+      <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
+        <p className="text-xs text-slate-600">School</p>
+        <p className="mt-1 text-sm font-medium text-white">{school || currentSchool || "Nearby school"}</p>
       </div>
 
       {/* Course */}
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
-          Course <span className="normal-case text-slate-600 tracking-normal font-normal">(optional)</span>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">
+          Class <span className="font-normal text-slate-600">optional</span>
         </label>
         <select
           value={course}
           onChange={(e) => setCourse(e.target.value)}
           disabled={!school}
-          className="w-full px-4 py-3 rounded-xl bg-[#1a1b2e] border border-[#2a2b45] text-sm text-white focus:border-indigo-500 transition-colors appearance-none disabled:opacity-40"
+          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none appearance-none disabled:opacity-40"
         >
           <option value="">Select course…</option>
           {courses.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
       </div>
 
-      {/* Teacher */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">
-          Teacher <span className="normal-case text-slate-600 tracking-normal font-normal">(optional)</span>
-        </label>
-        <input
-          type="text"
-          placeholder="e.g. Mr. Patterson"
-          value={teacher}
-          onChange={(e) => setTeacher(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl bg-[#1a1b2e] border border-[#2a2b45] text-sm text-white placeholder-slate-600 focus:border-indigo-500 transition-colors"
-        />
-      </div>
-
       {/* Title */}
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Title *</label>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">Title</label>
         <input
           type="text"
           placeholder="e.g. AP Chem Unit 4 Notes"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-4 py-3 rounded-xl bg-[#1a1b2e] border border-[#2a2b45] text-sm text-white placeholder-slate-600 focus:border-indigo-500 transition-colors"
+          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
         />
       </div>
 
       {/* File */}
       <div>
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">File *</label>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">Page</label>
         <div
           onClick={() => fileRef.current?.click()}
           className={clsx(
-            "border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all",
+            "rounded-[1.75rem] border border-dashed p-7 text-center cursor-pointer transition-all",
             file
-              ? "border-indigo-500/60 bg-indigo-500/5"
-              : "border-[#2a2b45] hover:border-indigo-500/40 hover:bg-[#1a1b2e]"
+              ? "border-white/20 bg-white/[0.04]"
+              : "border-white/10 bg-white/[0.025]"
           )}
         >
           {file ? (
@@ -357,16 +338,16 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
       </div>
 
       {/* Review notice */}
-      <div className="bg-[#1a1b2e] border border-[#2a2b45] rounded-xl p-3 text-xs text-slate-500 leading-relaxed">
-        <span className="text-indigo-400 font-semibold">Review notice:</span> All uploads enter a private moderation queue. Prohibited material — current exams, answer keys, graded work, or personal student data — is blocked and never published. Allowed: notes, study guides, flashcards, summaries, released prep material.
+      <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-slate-500">
+        Reviewed before public. Current tests, answer keys, private docs, and personal info stay blocked.
       </div>
 
       <button
         type="submit"
         disabled={!canSubmit}
-        className="w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all flex items-center justify-center gap-2"
+        className="w-full rounded-full bg-white py-4 text-sm font-semibold text-black transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30 flex items-center justify-center gap-2"
       >
-        <Upload size={16} /> Submit for review
+        <Upload size={16} /> Submit
       </button>
     </form>
   );
