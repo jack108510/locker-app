@@ -137,7 +137,7 @@ export function AdminDashboard({ approved, pending }: AdminDashboardProps) {
                 <Clock size={14} className="text-amber-400 mt-0.5 flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs text-white font-medium line-clamp-1">{m.title}</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">{m.school} · {m.course} · {m.uploadedAt}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{m.school} · {m.course} · under review</p>
                 </div>
               </div>
             ))}
@@ -154,7 +154,7 @@ export function AdminDashboard({ approved, pending }: AdminDashboardProps) {
               <div className="min-w-0">
                 <p className="text-xs text-slate-300 font-medium line-clamp-1">{b.title}</p>
                 <p className="text-[10px] text-red-400/70 mt-0.5">{b.reason}</p>
-                <p className="text-[10px] text-slate-600">{b.school} · {b.blockedAt}</p>
+                <p className="text-[10px] text-slate-600">{b.school} · blocked this week</p>
               </div>
             </div>
           ))}

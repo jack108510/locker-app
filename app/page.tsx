@@ -127,6 +127,7 @@ export default function Home() {
           {tab === "upload" && (
             <UploadForm
               pseudonym={pseudonym || "Anonymous"}
+              currentSchool={mySchool}
               onApproved={(m) => setApprovedFeed((prev) => [m, ...prev])}
               onQueued={(m) => setPendingQueue((prev) => [m, ...prev])}
             />
@@ -137,7 +138,7 @@ export default function Home() {
           )}
         </main>
 
-        <BottomNav active={tab} onChange={setTab} />
+        {onboarded && <BottomNav active={tab} onChange={setTab} />}
       </div>
     </>
   );

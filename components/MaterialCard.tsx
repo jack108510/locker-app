@@ -109,7 +109,7 @@ export function MaterialCard({ material, onOpen }: MaterialCardProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-600 font-mono">{material.pseudonym}</span>
+          <span className="text-[10px] text-slate-600 font-mono">Anonymous drop</span>
           <button
             onClick={handleReport}
             className={clsx(

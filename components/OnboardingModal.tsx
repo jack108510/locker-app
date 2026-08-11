@@ -114,8 +114,8 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 modal-backdrop bg-black/70">
-      <div className="w-full max-w-sm bg-[#12131f] border border-[#2a2b45] rounded-3xl p-6 animate-slide-up shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 modal-backdrop bg-black/70 overflow-y-auto">
+      <div className="w-full max-w-sm max-h-[92vh] overflow-y-auto bg-[#12131f] border border-[#2a2b45] rounded-3xl p-6 animate-slide-up shadow-2xl">
         {/* Step 1 — pseudonym */}
         {step === 1 && (
           <>

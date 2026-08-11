@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { SCHOOLS, MATERIAL_TYPES, moderateUpload, MaterialType, StudyMaterial } from "@/lib/mockData";
 import { Upload, FileText, CheckCircle, AlertCircle, XCircle, X } from "lucide-react";
 import { clsx } from "clsx";
 
 interface UploadFormProps {
   pseudonym: string;
+  currentSchool?: string;
   onApproved: (m: StudyMaterial) => void;
   onQueued: (m: StudyMaterial) => void;
 }
 
 type SubmitState = "idle" | "reviewing" | "approved" | "pending" | "blocked";
 
-export function UploadForm({ pseudonym, onApproved, onQueued }: UploadFormProps) {
+export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: UploadFormProps) {
   const [type, setType] = useState<MaterialType | "">("");
   const [school, setSchool] = useState("");
   const [course, setCourse] = useState("");
@@ -24,7 +25,15 @@ export function UploadForm({ pseudonym, onApproved, onQueued }: UploadFormProps)
   const [moderationResult, setModerationResult] = useState<{ status: string; reason?: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const selectedSchool = SCHOOLS.find((s) => s.name === school);
+  const schoolOptions = currentSchool && !SCHOOLS.some((s) => s.name === currentSchool)
+    ? [{ id: "current-school", name: currentSchool, courses: [] }, ...SCHOOLS]
+    : SCHOOLS;
+
+  useEffect(() => {
+    if (currentSchool && !school) setSchool(currentSchool);
+  }, [currentSchool, school]);
+
+  const selectedSchool = schoolOptions.find((s) => s.name === school);
   const courses = selectedSchool?.courses ?? [];
   const canSubmit = type && school && title && file;
 
@@ -56,7 +65,7 @@ export function UploadForm({ pseudonym, onApproved, onQueued }: UploadFormProps)
       saves: 0,
       status: result.status,
       tags: [],
-      preview: `Submitted by ${pseudonym} — pending or approved study material.`,
+      preview: "Submitted study material — pending or approved after moderation review.",
       pages: 1,
     };
 
@@ -176,7 +185,7 @@ export function UploadForm({ pseudonym, onApproved, onQueued }: UploadFormProps)
           className="w-full px-4 py-3 rounded-xl bg-[#1a1b2e] border border-[#2a2b45] text-sm text-white focus:border-indigo-500 transition-colors appearance-none"
         >
           <option value="">Select school…</option>
-          {SCHOOLS.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+          {schoolOptions.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
         </select>
       </div>
 

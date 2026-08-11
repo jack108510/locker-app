@@ -86,7 +86,7 @@ export function DocumentViewer({ material, onClose }: DocumentViewerProps) {
         <div className="bg-[#0e0f1a] mx-4 my-4 rounded-2xl border border-[#2a2b45] min-h-[220px] p-5">
           <div className="text-[11px] text-slate-600 mb-3 flex justify-between font-mono">
             <span>PAGE {page} OF {totalPages}</span>
-            <span>{material.pseudonym}</span>
+            <span>Anonymous drop</span>
           </div>
           <div className="space-y-1.5">
             {content.map((line, i) => (

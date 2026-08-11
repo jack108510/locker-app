@@ -1,7 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
-import { Home, Search, Upload, Shield } from "lucide-react";
+import { Home, Search, Upload } from "lucide-react";
 
 export type NavTab = "home" | "browse" | "upload" | "admin";
 
@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { id: "home" as NavTab, label: "Home", Icon: Home },
   { id: "browse" as NavTab, label: "Browse", Icon: Search },
   { id: "upload" as NavTab, label: "Drop", Icon: Upload },
-  { id: "admin" as NavTab, label: "Admin", Icon: Shield },
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
