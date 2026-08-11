@@ -328,65 +328,6 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         </div>
       )}
 
-      {/* Type */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">Type</label>
-        <div className="-mx-5 overflow-x-auto px-5 no-scrollbar">
-          <div className="flex gap-2 whitespace-nowrap">
-          {MATERIAL_TYPES.map((t) => (
-            <button
-              type="button"
-              key={t.value}
-              onClick={() => setType(t.value)}
-              className={clsx(
-                "flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-medium transition-all",
-                type === t.value
-                  ? "bg-white text-black"
-                  : "border border-white/10 bg-white/[0.03] text-slate-400"
-              )}
-            >
-              <span className="text-base">{t.emoji}</span>
-              <span className="text-xs leading-tight">{t.label}</span>
-            </button>
-          ))}
-          </div>
-        </div>
-      </div>
-
-      {/* School */}
-      <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-        <p className="text-xs text-slate-600">School</p>
-        <p className="mt-1 text-sm font-medium text-white">{school || currentSchool || "Nearby school"}</p>
-      </div>
-
-      {/* Course */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">
-          Class <span className="font-normal text-slate-600">optional</span>
-        </label>
-        <select
-          value={course}
-          onChange={(e) => setCourse(e.target.value)}
-          disabled={!school}
-          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none appearance-none disabled:opacity-40"
-        >
-          <option value="">Select course…</option>
-          {courses.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
-
-      {/* Title */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">Title</label>
-        <input
-          type="text"
-          placeholder="e.g. AP Chem Unit 4 Notes"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
-        />
-      </div>
-
       {/* File */}
       <div>
         <label className="block text-xs font-semibold text-slate-500 mb-2">Page</label>
@@ -479,6 +420,73 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         )}
       </div>
 
+      {file ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-xs font-medium text-cyan-200">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-300/10 text-[11px]">2</span>
+            Fill the basics
+          </div>
+
+      {/* Type */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">Type</label>
+        <div className="-mx-5 overflow-x-auto px-5 no-scrollbar">
+          <div className="flex gap-2 whitespace-nowrap">
+          {MATERIAL_TYPES.map((t) => (
+            <button
+              type="button"
+              key={t.value}
+              onClick={() => setType(t.value)}
+              className={clsx(
+                "flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-medium transition-all",
+                type === t.value
+                  ? "bg-white text-black"
+                  : "border border-white/10 bg-white/[0.03] text-slate-400"
+              )}
+            >
+              <span className="text-base">{t.emoji}</span>
+              <span className="text-xs leading-tight">{t.label}</span>
+            </button>
+          ))}
+          </div>
+        </div>
+      </div>
+
+      {/* School */}
+      <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
+        <p className="text-xs text-slate-600">School</p>
+        <p className="mt-1 text-sm font-medium text-white">{school || currentSchool || "Nearby school"}</p>
+      </div>
+
+      {/* Course */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">
+          Class <span className="font-normal text-slate-600">optional</span>
+        </label>
+        <select
+          value={course}
+          onChange={(e) => setCourse(e.target.value)}
+          disabled={!school}
+          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none appearance-none disabled:opacity-40"
+        >
+          <option value="">Select course…</option>
+          {courses.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {/* Title */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">Title</label>
+        <input
+          type="text"
+          placeholder="e.g. AP Chem Unit 4 Notes"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
+        />
+      </div>
+
+
       {/* Review notice */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-slate-500">
         Reviewed before public. Current tests, answer keys, private docs, and personal info stay blocked.
@@ -491,6 +499,12 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
       >
         <Upload size={16} /> Submit
       </button>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-sm leading-6 text-slate-500">
+          Scan or upload the page first. Manual details unlock after Locker has the document.
+        </div>
+      )}
     </form>
   );
 }
