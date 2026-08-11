@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Logo } from "@/components/Logo";
 import { BottomNav, NavTab } from "@/components/BottomNav";
 import { OnboardingModal } from "@/components/OnboardingModal";
@@ -10,12 +10,24 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { UploadForm } from "@/components/UploadForm";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { APPROVED_MATERIALS, StudyMaterial } from "@/lib/mockData";
-import { BookOpen, ArrowRight, MapPin, ScanText } from "lucide-react";
+import { BookOpen, ArrowRight, MapPin, ScanText, Lock, UserRound } from "lucide-react";
+
+type LockerUser = {
+  username: string;
+  password: string;
+  pseudonym: string;
+  school: string;
+};
+
+const USERS_KEY = "locker-users-v1";
+const SESSION_KEY = "locker-session-v1";
 
 export default function Home() {
   const [onboarded, setOnboarded] = useState(false);
   const [pseudonym, setPseudonym] = useState("");
   const [mySchool, setMySchool] = useState("");
+  const [user, setUser] = useState<LockerUser | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [tab, setTab] = useState<NavTab>("home");
 
   const [approvedFeed, setApprovedFeed] = useState<StudyMaterial[]>(APPROVED_MATERIALS);
@@ -28,7 +40,49 @@ export default function Home() {
   const [filterType, setFilterType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
+  useEffect(() => {
+    // localStorage hydration is the whole point of this prototype login.
+    const sessionUsername = window.localStorage.getItem(SESSION_KEY);
+    const users = readUsers();
+    const savedUser = users.find((u) => u.username === sessionUsername);
+    if (savedUser) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUser(savedUser);
+      setPseudonym(savedUser.pseudonym);
+      setMySchool(savedUser.school);
+      setOnboarded(Boolean(savedUser.school));
+      setTab(savedUser.school ? "browse" : "home");
+    }
+    setAuthReady(true);
+  }, []);
+
+  const saveUser = (nextUser: LockerUser) => {
+    const users = readUsers().filter((u) => u.username !== nextUser.username);
+    window.localStorage.setItem(USERS_KEY, JSON.stringify([...users, nextUser]));
+    window.localStorage.setItem(SESSION_KEY, nextUser.username);
+    setUser(nextUser);
+  };
+
+  const handleAuth = (nextUser: LockerUser) => {
+    saveUser(nextUser);
+    setPseudonym(nextUser.pseudonym);
+    setMySchool(nextUser.school);
+    setOnboarded(Boolean(nextUser.school));
+    setTab(nextUser.school ? "browse" : "home");
+  };
+
+  const handleLogout = () => {
+    window.localStorage.removeItem(SESSION_KEY);
+    setUser(null);
+    setOnboarded(false);
+    setPseudonym("");
+    setMySchool("");
+    setTab("home");
+  };
+
   const handleOnboardComplete = (p: string, s: string) => {
+    const nextUser = user ? { ...user, pseudonym: p, school: s } : null;
+    if (nextUser) saveUser(nextUser);
     setPseudonym(p);
     setMySchool(s);
     setOnboarded(true);
@@ -51,7 +105,8 @@ export default function Home() {
 
   return (
     <>
-      {!onboarded && <OnboardingModal onComplete={handleOnboardComplete} />}
+      {authReady && !user && <AuthGate onAuth={handleAuth} />}
+      {authReady && user && !onboarded && <OnboardingModal onComplete={handleOnboardComplete} />}
 
       {viewingMaterial && (
         <DocumentViewer material={viewingMaterial} onClose={() => setViewingMaterial(null)} />
@@ -63,8 +118,13 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             {onboarded && mySchool && (
-              <div className="max-w-[180px] truncate rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-400">
-                {mySchool.replace(" High School", "")}
+              <div className="flex items-center gap-2">
+                <div className="max-w-[140px] truncate rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-400">
+                  {mySchool.replace(" High School", "")}
+                </div>
+                <button onClick={handleLogout} className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-500 transition hover:text-white">
+                  Log out
+                </button>
               </div>
             )}
           </div>
@@ -139,6 +199,107 @@ export default function Home() {
         {onboarded && <BottomNav active={tab} onChange={setTab} />}
       </div>
     </>
+  );
+}
+
+function readUsers(): LockerUser[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(USERS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function AuthGate({ onAuth }: { onAuth: (user: LockerUser) => void }) {
+  const [mode, setMode] = useState<"signin" | "signup">("signup");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanUsername = username.trim().toLowerCase();
+    if (cleanUsername.length < 3 || password.length < 4) {
+      setError("Use at least 3 characters for username and 4 for password.");
+      return;
+    }
+
+    const users = readUsers();
+    const existing = users.find((u) => u.username === cleanUsername);
+    if (mode === "signin") {
+      if (!existing || existing.password !== password) {
+        setError("That username/password doesn’t match.");
+        return;
+      }
+      onAuth(existing);
+      return;
+    }
+
+    if (existing) {
+      setError("That username already exists on this device.");
+      return;
+    }
+
+    onAuth({ username: cleanUsername, password, pseudonym: cleanUsername, school: "" });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/75 p-4 sm:items-center">
+      <form onSubmit={submit} className="w-full max-w-sm animate-slide-up rounded-[2rem] border border-white/10 bg-[#111217] p-6 shadow-2xl shadow-black/50">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="rounded-2xl bg-white text-black p-3">
+            <Lock size={20} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Remember me</h2>
+            <p className="text-sm text-slate-500">Save your school and alias on this device.</p>
+          </div>
+        </div>
+
+        <div className="mb-4 grid grid-cols-2 gap-2 rounded-full border border-white/10 bg-white/[0.03] p-1">
+          <button type="button" onClick={() => { setMode("signup"); setError(""); }} className={`rounded-full py-2 text-xs font-medium transition ${mode === "signup" ? "bg-white text-black" : "text-slate-500"}`}>
+            Create
+          </button>
+          <button type="button" onClick={() => { setMode("signin"); setError(""); }} className={`rounded-full py-2 text-xs font-medium transition ${mode === "signin" ? "bg-white text-black" : "text-slate-500"}`}>
+            Sign in
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <label className="relative block">
+            <UserRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="username"
+              autoCapitalize="none"
+              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
+            />
+          </label>
+          <label className="relative block">
+            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="password"
+              type="password"
+              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
+            />
+          </label>
+        </div>
+
+        {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
+
+        <button type="submit" className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-sm font-semibold text-black transition active:scale-[0.99]">
+          {mode === "signup" ? "Create Locker" : "Sign in"} <ArrowRight size={16} />
+        </button>
+        <p className="mt-4 text-center text-[11px] leading-5 text-slate-600">
+          Prototype login only. It stores this on your browser so Locker remembers you after refresh.
+        </p>
+      </form>
+    </div>
   );
 }
 
