@@ -8,9 +8,11 @@ import { clsx } from "clsx";
 interface MaterialCardProps {
   material: StudyMaterial;
   onOpen: (m: StudyMaterial) => void;
+  matchReason?: string;
+  matchedTerms?: string[];
 }
 
-export function MaterialCard({ material, onOpen }: MaterialCardProps) {
+export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [] }: MaterialCardProps) {
   const [upvotes, setUpvotes] = useState(material.upvotes);
   const [upvoted, setUpvoted] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -44,7 +46,22 @@ export function MaterialCard({ material, onOpen }: MaterialCardProps) {
         </button>
       </div>
 
-      <p className="mb-5 line-clamp-2 text-sm leading-6 text-slate-400">{material.preview}</p>
+      <p className="mb-4 line-clamp-2 text-sm leading-6 text-slate-400">{material.preview}</p>
+
+      {matchReason && (
+        <div className="mb-5 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.045] p-3">
+          <p className="text-xs leading-5 text-cyan-100">{matchReason}</p>
+          {matchedTerms.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {matchedTerms.map((term) => (
+                <span key={term} className="rounded-full bg-black/25 px-2 py-1 text-[10px] text-cyan-200">
+                  {term}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-between border-t border-white/10 pt-3">
         <div className="min-w-0 text-xs text-slate-500">
