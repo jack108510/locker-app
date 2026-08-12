@@ -12,8 +12,8 @@ interface BottomNavProps {
 
 const NAV_ITEMS = [
   { id: "home" as NavTab, label: "Home", Icon: Home },
-  { id: "browse" as NavTab, label: "Find", Icon: Search },
-  { id: "upload" as NavTab, label: "Scan", Icon: Plus },
+  { id: "browse" as NavTab, label: "Search", Icon: Search },
+  { id: "upload" as NavTab, label: "Add", Icon: Plus },
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {

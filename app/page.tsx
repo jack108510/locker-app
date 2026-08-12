@@ -10,7 +10,7 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { UploadForm } from "@/components/UploadForm";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { APPROVED_MATERIALS, StudyMaterial } from "@/lib/mockData";
-import { BookOpen, ArrowRight, MapPin, ScanText, Lock, UserRound } from "lucide-react";
+import { Archive, ArrowRight, Database, ScanText, Lock, UserRound, ShieldCheck } from "lucide-react";
 
 type LockerUser = {
   username: string;
@@ -140,7 +140,7 @@ export default function Home() {
             <div className="space-y-5">
               <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white">Your feed</h1>
-                <p className="text-sm text-slate-500">Clean study material near {mySchool.replace(" High School", "") || "you"}.</p>
+                <p className="text-sm text-slate-500">Past assignments, quizzes, and exams near {mySchool.replace(" High School", "") || "you"}.</p>
               </div>
               <SearchFilter
                 school={filterSchool}
@@ -155,8 +155,8 @@ export default function Home() {
 
               {searchResults.length === 0 ? (
                 <div className="text-center py-16">
-                  <BookOpen size={36} className="text-slate-700 mx-auto mb-3" />
-                  <p className="text-slate-500 text-sm">No scan matched that search.</p>
+                  <Archive size={36} className="text-slate-700 mx-auto mb-3" />
+                  <p className="text-slate-500 text-sm">No past test material matched that search.</p>
                   <button
                     onClick={() => { setFilterSchool("all"); setFilterCourse("all"); setFilterType("all"); setSearchQuery(""); }}
                     className="mt-3 text-cyan-300 text-sm hover:text-cyan-200 transition-colors"
@@ -167,7 +167,7 @@ export default function Home() {
               ) : (
                 <div className="space-y-3">
                   {hasSearch && <SearchAnswer query={searchQuery} results={searchResults} />}
-                  <p className="text-xs text-slate-600">{searchResults.length} {hasSearch ? "matched scans" : "found"}</p>
+                  <p className="text-xs text-slate-600">{searchResults.length} {hasSearch ? "matched drops" : "public drops"}</p>
                   {searchResults.map((r) => (
                     <MaterialCard
                       key={r.material.id}
@@ -401,9 +401,9 @@ function rankMaterials({
 }
 
 function buildReason(material: StudyMaterial, hits: string[]) {
-  if (hits.length === 0) return "Locker found this from the scanned page and class details.";
+  if (hits.length === 0) return "Locker found this from the scanned past material and class details.";
   const readable = hits.slice(0, 3).join(", ");
-  return `Matched because the scan mentions ${readable} in ${material.course}.`;
+  return `Matched because the scanned past material mentions ${readable} in ${material.course}.`;
 }
 
 function SearchAnswer({ query, results }: { query: string; results: RankedMaterial[] }) {
@@ -412,10 +412,10 @@ function SearchAnswer({ query, results }: { query: string; results: RankedMateri
   return (
     <div className="rounded-[1.75rem] border border-cyan-300/15 bg-cyan-300/[0.055] p-4">
       <div className="mb-3 inline-flex rounded-full bg-cyan-300/10 px-3 py-1 text-[11px] font-medium text-cyan-200">
-        Locker AI search
+        Locker database search
       </div>
       <p className="text-sm leading-6 text-slate-300">
-        Found <span className="text-white">{results.length}</span> useful scan{results.length === 1 ? "" : "s"} for “{query.trim()}”.
+        Found <span className="text-white">{results.length}</span> past drop{results.length === 1 ? "" : "s"} for “{query.trim()}”.
         Best match is <span className="text-white">{best.material.title}</span>.
       </p>
       <p className="mt-2 text-xs leading-5 text-slate-500">{best.reason}</p>
@@ -428,29 +428,46 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
     <div className="animate-slide-up pt-8">
       <section className="min-h-[72vh] flex flex-col justify-between">
         <div className="space-y-7">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-slate-400">
-            <MapPin size={13} /> Near your school
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-300/[0.06] px-3 py-1 text-xs text-cyan-100">
+            <Database size={13} /> Crowdsourced test bank
           </div>
 
           <div className="space-y-4">
             <h1 className="text-[3.25rem] font-semibold tracking-[-0.08em] leading-[0.92] text-white">
-              Study stuff.<br />Nearby.
+              Old tests.<br />New edge.
             </h1>
-            <p className="max-w-[19rem] text-base leading-7 text-slate-400">
-              Locker finds your area, shows nearby schools, and lets students scan notes into a clean study feed.
+            <p className="max-w-[20rem] text-base leading-7 text-slate-400">
+              Locker is a shared database of old assignments, quizzes, and exams scanned by students around your school.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-              <ScanText className="mb-6 text-cyan-300" size={20} />
-              <p className="text-sm font-medium text-white">Scan pages</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">Pull text from photos.</p>
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-600">How it works</p>
+              <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-200">public after review</span>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-              <BookOpen className="mb-6 text-indigo-300" size={20} />
-              <p className="text-sm font-medium text-white">Browse fast</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">Notes from your school.</p>
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <ScanText className="mt-0.5 text-cyan-300" size={18} />
+                <div>
+                  <p className="text-sm font-medium text-white">Scan past material</p>
+                  <p className="text-xs leading-5 text-slate-500">Old assignments, quizzes, exams, review packets.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <ShieldCheck className="mt-0.5 text-indigo-300" size={18} />
+                <div>
+                  <p className="text-sm font-medium text-white">Moderated into the database</p>
+                  <p className="text-xs leading-5 text-slate-500">Current tests, answer keys, and personal info get blocked.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Archive className="mt-0.5 text-fuchsia-300" size={18} />
+                <div>
+                  <p className="text-sm font-medium text-white">Anyone signed up can search it</p>
+                  <p className="text-xs leading-5 text-slate-500">Find real past questions by topic, course, or school.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -460,9 +477,9 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
             onClick={onboard ?? onGetStarted}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-sm font-semibold text-black transition active:scale-[0.99]"
           >
-            Open Locker <ArrowRight size={16} />
+            Search the test bank <ArrowRight size={16} />
           </button>
-          <p className="text-center text-xs text-slate-600">Anonymous alias · location used once · uploads reviewed</p>
+          <p className="text-center text-xs text-slate-600">Anonymous drops · shared with every signup · reviewed before public</p>
         </div>
       </section>
     </div>

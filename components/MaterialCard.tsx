@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { StudyMaterial, MATERIAL_TYPES } from "@/lib/mockData";
-import { ArrowUp, Bookmark, Flag } from "lucide-react";
+import { ArrowUp, Bookmark, Flag, Archive } from "lucide-react";
 import { clsx } from "clsx";
 
 interface MaterialCardProps {
@@ -32,7 +32,7 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [] 
     >
       <div className="mb-5 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="mb-2 text-[11px] text-slate-500">{typeInfo?.label} · {material.pages ?? 1}p</p>
+          <p className="mb-2 text-[11px] text-slate-500"><Archive size={12} className="inline-block -mt-0.5 mr-1 text-cyan-300" />{typeInfo?.label} · {material.pages ?? 1}p</p>
           <h3 className="line-clamp-2 text-[15px] font-medium leading-6 text-white">
             {material.title}
           </h3>
@@ -40,7 +40,7 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [] 
         <button
           onClick={(e) => { e.stopPropagation(); setSaved((v) => !v); }}
           className={clsx("rounded-full p-2 transition", saved ? "bg-white text-black" : "bg-white/[0.04] text-slate-500")}
-          aria-label="Save"
+          aria-label="Save to locker"
         >
           <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
         </button>

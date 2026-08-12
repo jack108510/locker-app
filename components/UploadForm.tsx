@@ -173,7 +173,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
       tags: [],
       preview: scannedText
         ? scannedText.slice(0, 220)
-        : "Submitted study material — pending or approved after moderation review.",
+        : "Submitted past material — pending or approved after moderation review.",
       pages: 1,
     };
 
@@ -198,7 +198,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4 animate-slide-up">
         <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
-        <p className="text-slate-400 text-sm">Reviewing your material…</p>
+        <p className="text-slate-400 text-sm">Checking the drop before it goes public…</p>
       </div>
     );
   }
@@ -207,10 +207,10 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
     return (
       <div className="flex flex-col items-center text-center py-12 gap-4 animate-slide-up px-4">
         <CheckCircle size={52} className="text-emerald-400" strokeWidth={1.5} />
-        <h3 className="text-xl font-bold text-white">Live on the feed!</h3>
-        <p className="text-slate-400 text-sm max-w-xs">Your study material passed review and is now visible to students at {school}.</p>
+        <h3 className="text-xl font-bold text-white">Added to the public database</h3>
+        <p className="text-slate-400 text-sm max-w-xs">Your past material passed review and is searchable by anyone signed up near {school}.</p>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all">
-          Drop another
+          Scan another
         </button>
       </div>
     );
@@ -222,10 +222,10 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         <AlertCircle size={52} className="text-amber-400" strokeWidth={1.5} />
         <h3 className="text-xl font-bold text-white">In the queue</h3>
         <p className="text-slate-400 text-sm max-w-xs">
-          {moderationResult?.reason ?? "Your material is under review. It'll go live once a moderator clears it — usually under 24 hours."}
+          {moderationResult?.reason ?? "Your scan is under review. It goes into the shared database once a moderator clears it — usually under 24 hours."}
         </p>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-[#1a1b2e] border border-[#2a2b45] hover:border-indigo-500/40 text-white font-semibold text-sm transition-all">
-          Drop another
+          Scan another
         </button>
       </div>
     );
@@ -235,20 +235,20 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
     return (
       <div className="flex flex-col items-center text-center py-12 gap-4 animate-slide-up px-4">
         <XCircle size={52} className="text-red-400" strokeWidth={1.5} />
-        <h3 className="text-xl font-bold text-white">Submission blocked</h3>
+        <h3 className="text-xl font-bold text-white">Drop blocked</h3>
         <p className="text-slate-400 text-sm max-w-xs">{moderationResult?.reason}</p>
         <div className="bg-[#1a1b2e] border border-red-500/20 rounded-xl p-4 text-left max-w-xs w-full mt-2">
           <p className="text-xs text-red-400 font-semibold mb-1">Not allowed on Locker:</p>
           <ul className="text-xs text-slate-500 space-y-1 list-disc list-inside">
-            <li>Current or recent exam questions</li>
+            <li>Current / still-active test material</li>
             <li>Answer keys or teacher editions</li>
-            <li>Graded student work</li>
-            <li>Private teacher materials</li>
+            <li>Student names, grades, or personal info</li>
+            <li>Teacher-only copies or answer keys</li>
             <li>Photos containing personal student info</li>
           </ul>
         </div>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-[#1a1b2e] border border-[#2a2b45] hover:border-indigo-500/40 text-white font-semibold text-sm transition-all">
-          Try again with allowed material
+          Try again with old material
         </button>
       </div>
     );
@@ -257,8 +257,8 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
   return (
     <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
       <div>
-        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Live scan</h2>
-        <p className="text-sm text-slate-500">Point your camera at a page. Locker pulls the text directly off it.</p>
+        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Scan old material</h2>
+        <p className="text-sm text-slate-500">Scan an old assignment, quiz, or exam. If it clears review, everyone signed up can search it.</p>
       </div>
 
       <button
@@ -270,10 +270,10 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         <div className="relative flex items-center justify-between gap-5">
           <div>
             <div className="mb-3 inline-flex rounded-full bg-cyan-300/10 px-3 py-1 text-[11px] font-medium text-cyan-200">
-              live camera OCR
+              public database drop
             </div>
-            <p className="text-lg font-medium text-white">Scan with camera</p>
-            <p className="mt-1 text-sm leading-6 text-slate-400">Live viewfinder, capture frame, extract text.</p>
+            <p className="text-lg font-medium text-white">Scan old assignment / quiz / exam</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">Capture a page, pull text, add it to the shared test bank.</p>
           </div>
           <div className="rounded-full bg-white text-black p-4">
             <Camera size={20} />
@@ -287,7 +287,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-white">Hold page inside frame</p>
-              <p className="text-xs text-slate-500">Like Wallet scan — capture when the page is sharp.</p>
+              <p className="text-xs text-slate-500">Capture when the old page is sharp.</p>
             </div>
             <button type="button" onClick={stopScanner} className="rounded-full bg-white/10 p-2 text-white">
               <X size={18} />
@@ -301,7 +301,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
             <div className="absolute left-8 right-8 top-1/2 h-0.5 bg-cyan-200 shadow-[0_0_24px_rgba(103,232,249,0.95)] animate-pulse" />
             <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/10 bg-black/50 p-3 backdrop-blur">
               <div className="flex items-center gap-2 text-xs text-cyan-100">
-                <Sparkles size={14} /> Detecting page edges + printed text
+                <Sparkles size={14} /> Detecting questions + printed text
               </div>
             </div>
             {cameraError && (
@@ -322,7 +322,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
             disabled={!cameraReady || capturing}
             className="mt-5 rounded-full bg-white py-4 text-sm font-semibold text-black disabled:opacity-40"
           >
-            {capturing ? "Capturing…" : "Capture text"}
+            {capturing ? "Capturing…" : "Capture page"}
           </button>
           </div>
         </div>
@@ -330,7 +330,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
 
       {/* Photo */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">Page</label>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">Old material</label>
         <div
           onClick={() => fileRef.current?.click()}
           className={clsx(
@@ -365,8 +365,8 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
           ) : (
             <>
               <Upload size={22} className="text-slate-600 mx-auto mb-2" />
-              <p className="text-sm text-slate-400 font-medium">Or upload a photo</p>
-              <p className="text-xs text-slate-600 mt-1">Photos OCR automatically</p>
+              <p className="text-sm text-slate-400 font-medium">Or pick a photo of old material</p>
+              <p className="text-xs text-slate-600 mt-1">Assignments, quizzes, and exams only</p>
             </>
           )}
         </div>
@@ -377,7 +377,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 {scanState === "scanning" ? <Loader2 size={16} className="animate-spin text-cyan-300" /> : <ScanText size={16} className="text-cyan-300" />}
-                <span className="text-sm font-semibold text-white">Page scanner</span>
+                <span className="text-sm font-semibold text-white">Database scanner</span>
               </div>
               <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-cyan-200">
                 OCR
@@ -395,7 +395,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
 
             {scanState === "done" && (
               <div>
-                <p className="mb-2 text-xs text-emerald-300">Text pulled from the page. Locker will use this for preview + moderation.</p>
+                <p className="mb-2 text-xs text-emerald-300">Text pulled from the page. Locker uses it for search + moderation before making it public.</p>
                 <textarea
                   value={scannedText}
                   onChange={(e) => setScannedText(e.target.value)}
@@ -407,13 +407,13 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
 
             {scanState === "unsupported" && (
               <p className="text-xs leading-relaxed text-amber-300/80">
-                Locker only takes photos from the camera or photo library.
+                Locker only takes photos of old school material from the camera or photo library.
               </p>
             )}
 
             {scanState === "error" && (
               <p className="text-xs leading-relaxed text-red-300/80">
-                Couldn’t read text from this image. You can still submit it for review.
+                Couldn’t read text from this image. You can still submit the old material for review.
               </p>
             )}
           </div>
@@ -424,7 +424,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-xs font-medium text-cyan-200">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-300/10 text-[11px]">2</span>
-            Fill the basics
+            Label the drop
           </div>
 
       {/* Type */}
@@ -479,7 +479,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         <label className="block text-xs font-semibold text-slate-500 mb-2">Title</label>
         <input
           type="text"
-          placeholder="e.g. AP Chem Unit 4 Notes"
+          placeholder="e.g. AP Chem Unit 4 Quiz 2022"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
@@ -489,7 +489,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
 
       {/* Review notice */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-slate-500">
-        Reviewed before public. Current tests, answer keys, private materials, and personal info stay blocked.
+        Public after review. Old assignments, quizzes, and exams are allowed; current tests, answer keys, and personal info stay blocked.
       </div>
 
       <button
@@ -497,7 +497,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         disabled={!canSubmit}
         className="w-full rounded-full bg-white py-4 text-sm font-semibold text-black transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30 flex items-center justify-center gap-2"
       >
-        <Upload size={16} /> Submit
+        <Upload size={16} /> Add to public database
       </button>
         </div>
       ) : (

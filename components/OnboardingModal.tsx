@@ -114,7 +114,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             </div>
             <h2 className="text-2xl font-bold text-center text-white mb-1">Welcome to Locker</h2>
             <p className="text-slate-400 text-center text-sm mb-6">
-              Your study stash — always anonymous.
+              A shared database of old assignments, quizzes, and exams.
             </p>
 
             <div className="bg-[#1a1b2e] rounded-2xl p-4 mb-4 border border-[#2a2b45]">
@@ -141,9 +141,9 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
             {showWhat && (
               <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 mb-4 text-sm text-emerald-300 space-y-1">
-                <p>✓ Nothing. No account, no email, no name.</p>
-                <p>✓ Aliases are random — not linked to your device.</p>
-                <p>✓ Location is only used once to suggest nearby schools.</p>
+                <p>✓ No real name required in the prototype.</p>
+                <p>✓ Your drops show under an alias.</p>
+                <p>✓ Your school chooses which public test bank you enter.</p>
               </div>
             )}
 
@@ -151,7 +151,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               onClick={handleContinue}
               className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold transition-all duration-150 flex items-center justify-center gap-2"
             >
-              That&apos;s me <ArrowRight size={16} />
+              Enter anonymously <ArrowRight size={16} />
             </button>
           </>
         )}
@@ -160,7 +160,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           <>
             <h2 className="text-xl font-bold text-white mb-1">Schools near you</h2>
             <p className="text-slate-400 text-sm mb-5">
-              Locker uses your area to show nearby schools. Pick one to enter the feed.
+              Pick your school to search the shared database and add old material.
             </p>
 
             <div className="mb-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
@@ -222,7 +222,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
               disabled={!school}
               className="mt-3 w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/30"
             >
-              Enter Locker <ArrowRight size={16} />
+              Enter test bank <ArrowRight size={16} />
             </button>
           </>
         )}

@@ -1,10 +1,10 @@
 export type MaterialType =
-  | "notes"
-  | "study-guide"
-  | "practice-questions"
-  | "flashcards"
-  | "summary"
-  | "prep-material";
+  | "assignment"
+  | "quiz"
+  | "exam"
+  | "review-packet"
+  | "practice-test"
+  | "worksheet";
 
 export type ModerationStatus = "approved" | "pending" | "blocked";
 
@@ -81,19 +81,19 @@ export const SCHOOLS: School[] = [
 ];
 
 export const MATERIAL_TYPES: { value: MaterialType; label: string; emoji: string }[] = [
-  { value: "notes", label: "Class Notes", emoji: "📝" },
-  { value: "study-guide", label: "Study Guide", emoji: "📚" },
-  { value: "practice-questions", label: "Practice Questions", emoji: "❓" },
-  { value: "flashcards", label: "Flashcards", emoji: "🃏" },
-  { value: "summary", label: "Chapter Summary", emoji: "📋" },
-  { value: "prep-material", label: "Public Prep Material", emoji: "🎯" },
+  { value: "assignment", label: "Old Assignment", emoji: "" },
+  { value: "quiz", label: "Past Quiz", emoji: "" },
+  { value: "exam", label: "Past Exam", emoji: "" },
+  { value: "review-packet", label: "Review Packet", emoji: "" },
+  { value: "practice-test", label: "Practice Test", emoji: "" },
+  { value: "worksheet", label: "Worksheet", emoji: "" },
 ];
 
 export const APPROVED_MATERIALS: StudyMaterial[] = [
   {
     id: "h1",
-    title: "Chemistry 12 Bonding Review Sheet",
-    type: "study-guide",
+    title: "Chemistry 12 Bonding Quiz — Fall 2022",
+    type: "quiz",
     school: "Halifax West High School",
     course: "Chemistry 12",
     teacher: "Ms. Clarke",
@@ -103,13 +103,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 34,
     status: "approved",
     tags: ["bonding", "VSEPR", "intermolecular forces"],
-    preview: "Clean review sheet for bonding, polarity, molecular shapes, and intermolecular forces. Built from class notes and textbook examples.",
+    preview: "Scanned past quiz covering bonding, polarity, molecular shapes, and intermolecular forces. Useful for seeing how questions were worded.",
     pages: 7,
   },
   {
     id: "h2",
-    title: "Biology 11 Cell Unit Notes",
-    type: "notes",
+    title: "Biology 11 Cell Unit Old Assignment",
+    type: "assignment",
     school: "Halifax West High School",
     course: "Biology 11",
     pseudonym: "NorthOwl19",
@@ -118,13 +118,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 29,
     status: "approved",
     tags: ["cells", "organelles", "microscope", "membranes"],
-    preview: "Student-made cell biology notes covering organelles, membrane transport, microscope terms, and diagrams for quick studying.",
+    preview: "Old assignment page covering organelles, membrane transport, microscope terms, and diagrams from the cell unit.",
     pages: 9,
   },
   {
     id: "h3",
-    title: "Citadel Math 11 Functions Practice Pack",
-    type: "practice-questions",
+    title: "Citadel Math 11 Functions Quiz — 2021",
+    type: "quiz",
     school: "Citadel High School",
     course: "Math 11",
     pseudonym: "FogHawk77",
@@ -133,13 +133,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 22,
     status: "approved",
     tags: ["functions", "quadratics", "graphs", "domain"],
-    preview: "Self-made practice questions for functions, transformations, graphing, and domain/range. Includes worked examples.",
+    preview: "Past quiz scan with functions, transformations, graphing, and domain/range questions.",
     pages: 11,
   },
   {
     id: "1",
-    title: "AP Chemistry Unit 4 - Chemical Reactions Notes",
-    type: "notes",
+    title: "AP Chemistry Unit 4 Past Exam — Reactions",
+    type: "exam",
     school: "Lincoln High School",
     course: "AP Chemistry",
     teacher: "Mr. Patterson",
@@ -149,13 +149,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 23,
     status: "approved",
     tags: ["stoichiometry", "limiting reagent", "molar mass"],
-    preview: "Comprehensive notes covering balancing equations, stoichiometric calculations, limiting reagents, and percent yield. Includes worked examples from class.",
+    preview: "Scanned old unit test covering balancing equations, stoichiometric calculations, limiting reagents, and percent yield.",
     pages: 8,
   },
   {
     id: "2",
-    title: "APUSH Unit 5 Reconstruction Era - Full Study Guide",
-    type: "study-guide",
+    title: "APUSH Unit 5 Reconstruction Exam Review Packet",
+    type: "review-packet",
     school: "Lincoln High School",
     course: "AP US History",
     pseudonym: "StormEagle77",
@@ -164,13 +164,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 41,
     status: "approved",
     tags: ["reconstruction", "civil war", "freedmen", "amendments"],
-    preview: "Covers all major events, key figures, and political changes during Reconstruction (1865-1877). Includes timeline, key terms, and DBQ tips.",
+    preview: "Past exam review packet with Reconstruction questions, timeline prompts, key terms, and DBQ-style practice.",
     pages: 12,
   },
   {
     id: "3",
-    title: "Pre-Calc Trig Identities Flashcard Set",
-    type: "flashcards",
+    title: "Pre-Calc Trig Identities Quiz — Old Copy",
+    type: "quiz",
     school: "Lincoln High School",
     course: "Pre-Calculus",
     teacher: "Ms. Rivera",
@@ -180,13 +180,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 55,
     status: "approved",
     tags: ["trig", "identities", "unit circle", "sin", "cos", "tan"],
-    preview: "50-card set covering all Pythagorean identities, sum/difference formulas, double angle, and half angle formulas with visual memory aids.",
+    preview: "Old quiz scan covering Pythagorean identities, sum/difference formulas, double angle, and half angle formulas.",
     pages: 10,
   },
   {
     id: "4",
-    title: "AP Biology Chapter 9 - Cellular Respiration Summary",
-    type: "summary",
+    title: "AP Biology Chapter 9 Cellular Respiration Assignment",
+    type: "assignment",
     school: "Lincoln High School",
     course: "AP Biology",
     pseudonym: "WildPanda11",
@@ -195,13 +195,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 18,
     status: "approved",
     tags: ["glycolysis", "krebs cycle", "ATP", "ETC", "mitochondria"],
-    preview: "Concise 3-page summary of cellular respiration stages: glycolysis, pyruvate oxidation, Krebs cycle, and oxidative phosphorylation. Net ATP yield calculations included.",
+    preview: "Old assignment on cellular respiration stages: glycolysis, pyruvate oxidation, Krebs cycle, oxidative phosphorylation, and ATP yield.",
     pages: 3,
   },
   {
     id: "5",
-    title: "AP Physics 1 - Official College Board Practice FRQs",
-    type: "prep-material",
+    title: "AP Physics 1 Past FRQ Packet",
+    type: "review-packet",
     school: "Riverside High School",
     course: "AP Physics",
     pseudonym: "SwiftHawk33",
@@ -210,13 +210,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 72,
     status: "approved",
     tags: ["FRQ", "kinematics", "forces", "energy", "College Board"],
-    preview: "Collection of released College Board free-response questions from 2019-2023 with scoring guidelines. All publicly available from the AP Central website.",
+    preview: "Past free-response packet with kinematics, forces, and energy questions. Shared so students can search recurring question styles.",
     pages: 24,
   },
   {
     id: "6",
-    title: "Statistics Unit 3 - Probability Practice Problems",
-    type: "practice-questions",
+    title: "Statistics Unit 3 Probability Practice Test",
+    type: "practice-test",
     school: "Riverside High School",
     course: "Statistics",
     teacher: "Dr. Okonkwo",
@@ -226,13 +226,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 27,
     status: "approved",
     tags: ["probability", "Bayes", "conditional", "distributions"],
-    preview: "40 practice problems covering basic probability, conditional probability, Bayes theorem, and discrete distributions with full solutions.",
+    preview: "Past practice test covering basic probability, conditional probability, Bayes theorem, and discrete distributions.",
     pages: 15,
   },
   {
     id: "7",
-    title: "AP Calculus AB - Limits & Derivatives Cheat Sheet",
-    type: "study-guide",
+    title: "AP Calculus AB Limits & Derivatives Past Exam",
+    type: "exam",
     school: "Westview High School",
     course: "AP Calculus AB",
     pseudonym: "GlowFish88",
@@ -241,13 +241,13 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 103,
     status: "approved",
     tags: ["limits", "derivatives", "chain rule", "product rule", "L'Hopital"],
-    preview: "One-page reference covering all derivative rules, limit theorems, and common derivatives. Perfect for last-minute review before the exam.",
+    preview: "Scanned past exam pages on limits, derivative rules, chain rule, product rule, and common derivative setups.",
     pages: 2,
   },
   {
     id: "8",
-    title: "AP Gov - Landmark Supreme Court Cases Study Sheet",
-    type: "study-guide",
+    title: "AP Gov Landmark Supreme Court Cases Quiz",
+    type: "quiz",
     school: "Westview High School",
     course: "AP Government",
     pseudonym: "TigerSpark21",
@@ -256,7 +256,7 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     saves: 44,
     status: "approved",
     tags: ["SCOTUS", "constitutional law", "civil liberties", "required cases"],
-    preview: "All 15 required Supreme Court cases with background, ruling, constitutional principle, and significance. Formatted for quick review.",
+    preview: "Past quiz scan asking about required Supreme Court cases, constitutional principles, rulings, and significance.",
     pages: 6,
   },
 ];
@@ -280,12 +280,12 @@ export function moderateUpload(
     if (reviewText.includes(kw)) {
       return {
         status: "blocked",
-        reason: `Upload text contains prohibited keyword: "${kw}". Private exams, answer keys, and graded materials cannot be uploaded.`,
+        reason: `Upload text contains prohibited keyword: "${kw}". Current/private exams, answer keys, and personal student info cannot be uploaded.`,
       };
     }
   }
 
-  const alwaysPending = ["practice-questions"];
+  const alwaysPending = ["exam", "quiz"];
   if (alwaysPending.includes(type)) {
     return { status: "pending" };
   }
@@ -294,7 +294,7 @@ export function moderateUpload(
   if (riskySuffixes.some((s) => lowerTitle.includes(s))) {
     return {
       status: "pending",
-      reason: "Material flagged for review — title suggests it may reference a current assessment.",
+      reason: "Drop flagged for review — title suggests it may reference a current assessment.",
     };
   }
 
@@ -304,8 +304,8 @@ export function moderateUpload(
 export const PENDING_QUEUE: StudyMaterial[] = [
   {
     id: "q1",
-    title: "World History Chapter 12 Practice Questions",
-    type: "practice-questions",
+    title: "World History Chapter 12 Old Quiz",
+    type: "quiz",
     school: "Riverside High School",
     course: "World History",
     pseudonym: "RedDeer44",
@@ -314,13 +314,13 @@ export const PENDING_QUEUE: StudyMaterial[] = [
     saves: 0,
     status: "pending",
     tags: ["cold war", "decolonization"],
-    preview: "Self-made practice questions based on lecture notes for Chapter 12.",
+    preview: "Old quiz scan based on Chapter 12: cold war and decolonization prompts.",
     pages: 4,
   },
   {
     id: "q2",
-    title: "AP Macro Unit 2 Practice MCQs",
-    type: "practice-questions",
+    title: "AP Macro Unit 2 Old Quiz",
+    type: "quiz",
     school: "Central High School",
     course: "AP Macro",
     pseudonym: "BlueStar90",
@@ -329,7 +329,7 @@ export const PENDING_QUEUE: StudyMaterial[] = [
     saves: 0,
     status: "pending",
     tags: ["GDP", "monetary policy", "inflation"],
-    preview: "30 multiple choice questions covering circular flow, GDP components, and monetary policy basics.",
+    preview: "Old multiple-choice quiz covering circular flow, GDP components, and monetary policy basics.",
     pages: 8,
   },
 ];

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Locker — Your school's study stash.",
-  description: "Anonymous study material sharing for your school. Notes, guides, flashcards — all reviewed before they're visible.",
-  keywords: ["study", "school", "notes", "flashcards", "anonymous", "study guide"],
+  title: "Locker — Past quizzes and exams from students near you.",
+  description: "A crowdsourced school database where students scan old assignments, quizzes, and exams so anyone who signs up can search real past test material.",
+  keywords: ["past exams", "old quizzes", "assignments", "test bank", "school", "crowdsourced"],
 };
 
 export default function RootLayout({
