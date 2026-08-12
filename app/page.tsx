@@ -9,7 +9,7 @@ import { MaterialCard } from "@/components/MaterialCard";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { UploadForm } from "@/components/UploadForm";
 import { AdminDashboard } from "@/components/AdminDashboard";
-import { APPROVED_MATERIALS, StudyMaterial } from "@/lib/mockData";
+import { APPROVED_MATERIALS, COMMUNITY_STATS, StudyMaterial } from "@/lib/mockData";
 import { Archive, ArrowRight, Database, ScanText, Lock, UserRound, ShieldCheck } from "lucide-react";
 
 type LockerUser = {
@@ -102,6 +102,7 @@ export default function Home() {
   }, [approvedFeed, filterSchool, filterCourse, filterType, searchQuery, mySchool]);
 
   const hasSearch = searchQuery.trim().length > 0;
+  const totalSubmitted = COMMUNITY_STATS.submitted + approvedFeed.length - APPROVED_MATERIALS.length + pendingQueue.length;
 
   return (
     <>
@@ -138,9 +139,16 @@ export default function Home() {
 
           {tab === "browse" && (
             <div className="space-y-5">
-              <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white">Your feed</h1>
-                <p className="text-sm text-slate-500">Past assignments, quizzes, and exams near {mySchool.replace(" High School", "") || "you"}.</p>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white">Your feed</h1>
+                  <p className="text-sm text-slate-500">Past assignments, quizzes, and exams near {mySchool.replace(" High School", "") || "you"}.</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <MiniStat value={totalSubmitted.toLocaleString()} label="submitted" />
+                  <MiniStat value={COMMUNITY_STATS.approved.toLocaleString()} label="approved" />
+                  <MiniStat value={COMMUNITY_STATS.schools.toString()} label="schools" />
+                </div>
               </div>
               <SearchFilter
                 school={filterSchool}
@@ -199,6 +207,15 @@ export default function Home() {
         {onboarded && <BottomNav active={tab} onChange={setTab} />}
       </div>
     </>
+  );
+}
+
+function MiniStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3">
+      <p className="text-lg font-semibold tracking-[-0.04em] text-white">{value}</p>
+      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-600">{label}</p>
+    </div>
   );
 }
 
@@ -384,6 +401,7 @@ function rankMaterials({
         if (fields.title.includes(token)) { score += 18; hit = true; }
         if (fields.course.includes(token)) { score += 14; hit = true; }
         if (fields.tags.includes(token)) { score += 12; hit = true; }
+        if ((material.teacher ?? "").toLowerCase().includes(token)) { score += 10; hit = true; }
         if (fields.scan.includes(token)) { score += 8; hit = true; }
         if (fields.school.includes(token)) { score += 4; hit = true; }
         if (hit) hits.push(token);

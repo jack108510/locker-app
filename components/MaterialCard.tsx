@@ -46,7 +46,13 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [] 
         </button>
       </div>
 
-      <p className="mb-4 line-clamp-2 text-sm leading-6 text-slate-400">{material.preview}</p>
+      <p className="mb-3 line-clamp-2 text-sm leading-6 text-slate-400">{material.preview}</p>
+
+      <div className="mb-4 flex flex-wrap gap-1.5">
+        <Tag>{material.course}</Tag>
+        {material.teacher && <Tag>{material.teacher}</Tag>}
+        {material.type === "assignment" && <Tag>assignment</Tag>}
+      </div>
 
       {matchReason && (
         <div className="mb-5 rounded-2xl border border-cyan-300/10 bg-cyan-300/[0.045] p-3">
@@ -85,6 +91,14 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [] 
         </div>
       </div>
     </article>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[10px] font-medium text-slate-400">
+      {children}
+    </span>
   );
 }
 

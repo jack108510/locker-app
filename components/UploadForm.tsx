@@ -170,7 +170,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
       upvotes: 0,
       saves: 0,
       status: result.status,
-      tags: [],
+      tags: [course, teacher, type as string].filter(Boolean),
       preview: scannedText
         ? scannedText.slice(0, 220)
         : "Submitted past material — pending or approved after moderation review.",
@@ -474,6 +474,18 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         </select>
       </div>
 
+      {/* Teacher */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">Teacher <span className="font-normal text-slate-600">optional</span></label>
+        <input
+          type="text"
+          placeholder="e.g. Ms. Clarke"
+          value={teacher}
+          onChange={(e) => setTeacher(e.target.value)}
+          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
+        />
+      </div>
+
       {/* Title */}
       <div>
         <label className="block text-xs font-semibold text-slate-500 mb-2">Title</label>
@@ -485,6 +497,13 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
           className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
         />
       </div>
+
+      {type === "assignment" && (
+        <div className="flex flex-wrap gap-1.5">
+          {course && <span className="rounded-full bg-cyan-300/10 px-3 py-1.5 text-[11px] font-medium text-cyan-100">Class: {course}</span>}
+          {teacher && <span className="rounded-full bg-indigo-300/10 px-3 py-1.5 text-[11px] font-medium text-indigo-100">Teacher: {teacher}</span>}
+        </div>
+      )}
 
 
       {/* Review notice */}
