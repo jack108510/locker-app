@@ -2,19 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SCHOOLS, MATERIAL_TYPES, moderateUpload, MaterialType, StudyMaterial } from "@/lib/mockData";
+import { submitMaterial } from "@/lib/lockerData";
+import { supabaseConfigured } from "@/lib/supabase";
 import { Upload, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2, Camera, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
 
 interface UploadFormProps {
   pseudonym: string;
   currentSchool?: string;
+  profileId?: string;
   onApproved: (m: StudyMaterial) => void;
   onQueued: (m: StudyMaterial) => void;
 }
 
 type SubmitState = "idle" | "reviewing" | "approved" | "pending" | "blocked";
 
-export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: UploadFormProps) {
+export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, onQueued }: UploadFormProps) {
   const [type, setType] = useState<MaterialType | "">("");
   const [school, setSchool] = useState(currentSchool ?? "");
   const [course, setCourse] = useState("");
@@ -26,6 +29,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
   const [scanProgress, setScanProgress] = useState(0);
   const [state, setState] = useState<SubmitState>("idle");
   const [moderationResult, setModerationResult] = useState<{ status: string; reason?: string } | null>(null);
+  const [submitError, setSubmitError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -158,7 +162,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
     const result = moderateUpload(title, type as MaterialType, scannedText);
     setModerationResult(result);
 
-    const newMaterial: StudyMaterial = {
+    const localMaterial: StudyMaterial = {
       id: `u-${Date.now()}`,
       title,
       type: type as MaterialType,
@@ -174,8 +178,34 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
       preview: scannedText
         ? scannedText.slice(0, 220)
         : "Submitted past material — pending or approved after moderation review.",
+      ocrText: scannedText || undefined,
       pages: 1,
     };
+
+    let newMaterial = localMaterial;
+    if (supabaseConfigured) {
+      try {
+        newMaterial = await submitMaterial({
+          profileId,
+          title,
+          type: type as MaterialType,
+          school,
+          course: course || "General",
+          teacher: teacher || undefined,
+          pseudonym,
+          status: result.status,
+          moderationReason: result.reason,
+          tags: localMaterial.tags,
+          scannedText,
+          preview: localMaterial.preview,
+          pages: 1,
+        });
+        setSubmitError("");
+      } catch (error) {
+        console.warn("Live database submit failed", error);
+        setSubmitError("Couldn’t reach the live database. Saved locally for this session.");
+      }
+    }
 
     if (result.status === "approved") {
       setState("approved");
@@ -190,7 +220,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
 
   const reset = () => {
     setType(""); setSchool(""); setCourse(""); setTeacher("");
-    setTitle(""); setFile(null); setScannedText(""); setScanState("idle"); setScanProgress(0); setState("idle"); setModerationResult(null);
+    setTitle(""); setFile(null); setScannedText(""); setScanState("idle"); setScanProgress(0); setState("idle"); setModerationResult(null); setSubmitError("");
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -208,7 +238,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
       <div className="flex flex-col items-center text-center py-12 gap-4 animate-slide-up px-4">
         <CheckCircle size={52} className="text-emerald-400" strokeWidth={1.5} />
         <h3 className="text-xl font-bold text-white">Added to the public database</h3>
-        <p className="text-slate-400 text-sm max-w-xs">Your past material passed review and is searchable by anyone signed up near {school}.</p>
+        <p className="text-slate-400 text-sm max-w-xs">{submitError || `Your past material passed review and is searchable by anyone signed up near ${school}.`}</p>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all">
           Scan another
         </button>
@@ -222,7 +252,7 @@ export function UploadForm({ pseudonym, currentSchool, onApproved, onQueued }: U
         <AlertCircle size={52} className="text-amber-400" strokeWidth={1.5} />
         <h3 className="text-xl font-bold text-white">In the queue</h3>
         <p className="text-slate-400 text-sm max-w-xs">
-          {moderationResult?.reason ?? "Your scan is under review. It goes into the shared database once a moderator clears it — usually under 24 hours."}
+          {submitError || moderationResult?.reason || "Your scan is under review. It goes into the shared database once a moderator clears it — usually under 24 hours."}
         </p>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-[#1a1b2e] border border-[#2a2b45] hover:border-indigo-500/40 text-white font-semibold text-sm transition-all">
           Scan another

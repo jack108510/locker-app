@@ -10,13 +10,15 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { UploadForm } from "@/components/UploadForm";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { APPROVED_MATERIALS, COMMUNITY_STATS, StudyMaterial } from "@/lib/mockData";
+import { loadApprovedMaterials, loadCommunityStats, upsertProfile } from "@/lib/lockerData";
+import { supabaseConfigured } from "@/lib/supabase";
 import { Archive, ArrowRight, Database, ScanText, Lock, UserRound, ShieldCheck } from "lucide-react";
 
 type LockerUser = {
   username: string;
-  password: string;
   pseudonym: string;
   school: string;
+  profileId?: string;
 };
 
 const USERS_KEY = "locker-users-v1";
@@ -28,6 +30,9 @@ export default function Home() {
   const [mySchool, setMySchool] = useState("");
   const [user, setUser] = useState<LockerUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
+  const [profileId, setProfileId] = useState<string | undefined>();
+  const [communityStats, setCommunityStats] = useState(COMMUNITY_STATS);
+  const [dataStatus, setDataStatus] = useState<"loading" | "live" | "offline">(supabaseConfigured ? "loading" : "offline");
   const [tab, setTab] = useState<NavTab>("home");
 
   const [approvedFeed, setApprovedFeed] = useState<StudyMaterial[]>(APPROVED_MATERIALS);
@@ -50,10 +55,30 @@ export default function Home() {
       setUser(savedUser);
       setPseudonym(savedUser.pseudonym);
       setMySchool(savedUser.school);
+      setProfileId(savedUser.profileId);
       setOnboarded(Boolean(savedUser.school));
       setTab(savedUser.school ? "browse" : "home");
     }
     setAuthReady(true);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    async function loadLiveData() {
+      if (!supabaseConfigured) return;
+      try {
+        const [materials, stats] = await Promise.all([loadApprovedMaterials(), loadCommunityStats()]);
+        if (!active) return;
+        setApprovedFeed(materials.length ? materials : APPROVED_MATERIALS);
+        setCommunityStats(stats);
+        setDataStatus("live");
+      } catch (error) {
+        console.warn("Locker live data unavailable; using local seed data", error);
+        if (active) setDataStatus("offline");
+      }
+    }
+    void loadLiveData();
+    return () => { active = false; };
   }, []);
 
   const saveUser = (nextUser: LockerUser) => {
@@ -67,6 +92,7 @@ export default function Home() {
     saveUser(nextUser);
     setPseudonym(nextUser.pseudonym);
     setMySchool(nextUser.school);
+    setProfileId(nextUser.profileId);
     setOnboarded(Boolean(nextUser.school));
     setTab(nextUser.school ? "browse" : "home");
   };
@@ -80,11 +106,20 @@ export default function Home() {
     setTab("home");
   };
 
-  const handleOnboardComplete = (p: string, s: string) => {
-    const nextUser = user ? { ...user, pseudonym: p, school: s } : null;
+  const handleOnboardComplete = async (p: string, s: string) => {
+    let nextUser = user ? { ...user, pseudonym: p, school: s } : null;
+    if (nextUser && supabaseConfigured) {
+      try {
+        const profile = await upsertProfile({ username: nextUser.username, pseudonym: p, school: s });
+        nextUser = { ...nextUser, profileId: profile.id, pseudonym: profile.pseudonym, school: profile.school };
+        setProfileId(profile.id);
+      } catch (error) {
+        console.warn("Could not save Locker profile yet", error);
+      }
+    }
     if (nextUser) saveUser(nextUser);
-    setPseudonym(p);
-    setMySchool(s);
+    setPseudonym(nextUser?.pseudonym ?? p);
+    setMySchool(nextUser?.school ?? s);
     setOnboarded(true);
     setFilterSchool("all");
     setTab("browse");
@@ -102,7 +137,7 @@ export default function Home() {
   }, [approvedFeed, filterSchool, filterCourse, filterType, searchQuery, mySchool]);
 
   const hasSearch = searchQuery.trim().length > 0;
-  const totalSubmitted = COMMUNITY_STATS.submitted + approvedFeed.length - APPROVED_MATERIALS.length + pendingQueue.length;
+  const totalSubmitted = communityStats.submitted + approvedFeed.length - APPROVED_MATERIALS.length + pendingQueue.length;
 
   return (
     <>
@@ -146,9 +181,13 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <MiniStat value={totalSubmitted.toLocaleString()} label="submitted" />
-                  <MiniStat value={COMMUNITY_STATS.approved.toLocaleString()} label="approved" />
-                  <MiniStat value={COMMUNITY_STATS.schools.toString()} label="schools" />
+                  <MiniStat value={communityStats.approved.toLocaleString()} label="approved" />
+                  <MiniStat value={communityStats.schools.toString()} label="schools" />
                 </div>
+              </div>
+              <div className="flex items-center justify-between rounded-full border border-white/10 bg-white/[0.025] px-3 py-2 text-[11px] text-slate-500">
+                <span>{dataStatus === "live" ? "Live database" : dataStatus === "loading" ? "Connecting to database…" : "Offline seed mode"}</span>
+                <span className={dataStatus === "live" ? "text-emerald-300" : "text-amber-300"}>{dataStatus === "live" ? "synced" : "local"}</span>
               </div>
               <SearchFilter
                 school={filterSchool}
@@ -183,6 +222,7 @@ export default function Home() {
                       onOpen={setViewingMaterial}
                       matchReason={hasSearch ? r.reason : undefined}
                       matchedTerms={hasSearch ? r.terms : undefined}
+                      profileId={profileId}
                     />
                   ))}
                 </div>
@@ -194,8 +234,9 @@ export default function Home() {
             <UploadForm
               pseudonym={pseudonym || "Anonymous"}
               currentSchool={mySchool}
-              onApproved={(m) => setApprovedFeed((prev) => [m, ...prev])}
-              onQueued={(m) => setPendingQueue((prev) => [m, ...prev])}
+              profileId={profileId}
+              onApproved={(m) => { setApprovedFeed((prev) => [m, ...prev]); setCommunityStats((prev) => ({ ...prev, submitted: prev.submitted + 1, approved: prev.approved + 1 })); }}
+              onQueued={(m) => { setPendingQueue((prev) => [m, ...prev]); setCommunityStats((prev) => ({ ...prev, submitted: prev.submitted + 1 })); }}
             />
           )}
 
@@ -230,36 +271,20 @@ function readUsers(): LockerUser[] {
 }
 
 function AuthGate({ onAuth }: { onAuth: (user: LockerUser) => void }) {
-  const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanUsername = username.trim().toLowerCase();
-    if (cleanUsername.length < 3 || password.length < 4) {
-      setError("Use at least 3 characters for username and 4 for password.");
+    const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    if (cleanUsername.length < 3) {
+      setError("Use at least 3 characters.");
       return;
     }
 
     const users = readUsers();
     const existing = users.find((u) => u.username === cleanUsername);
-    if (mode === "signin") {
-      if (!existing || existing.password !== password) {
-        setError("That username/password doesn’t match.");
-        return;
-      }
-      onAuth(existing);
-      return;
-    }
-
-    if (existing) {
-      setError("That username already exists on this device.");
-      return;
-    }
-
-    onAuth({ username: cleanUsername, password, pseudonym: cleanUsername, school: "" });
+    onAuth(existing ?? { username: cleanUsername, pseudonym: cleanUsername, school: "" });
   };
 
   return (
@@ -270,50 +295,29 @@ function AuthGate({ onAuth }: { onAuth: (user: LockerUser) => void }) {
             <Lock size={20} />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Remember me</h2>
-            <p className="text-sm text-slate-500">Save your school and alias on this device.</p>
+            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Pick an alias</h2>
+            <p className="text-sm text-slate-500">No email. No password. Choose a handle and enter.</p>
           </div>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-full border border-white/10 bg-white/[0.03] p-1">
-          <button type="button" onClick={() => { setMode("signup"); setError(""); }} className={`rounded-full py-2 text-xs font-medium transition ${mode === "signup" ? "bg-white text-black" : "text-slate-500"}`}>
-            Create
-          </button>
-          <button type="button" onClick={() => { setMode("signin"); setError(""); }} className={`rounded-full py-2 text-xs font-medium transition ${mode === "signin" ? "bg-white text-black" : "text-slate-500"}`}>
-            Sign in
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          <label className="relative block">
-            <UserRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="username"
-              autoCapitalize="none"
-              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
-            />
-          </label>
-          <label className="relative block">
-            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="password"
-              type="password"
-              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
-            />
-          </label>
-        </div>
+        <label className="relative block">
+          <UserRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="alias"
+            autoCapitalize="none"
+            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
+          />
+        </label>
 
         {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
 
         <button type="submit" className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-sm font-semibold text-black transition active:scale-[0.99]">
-          {mode === "signup" ? "Create Locker" : "Sign in"} <ArrowRight size={16} />
+          Enter Locker <ArrowRight size={16} />
         </button>
         <p className="mt-4 text-center text-[11px] leading-5 text-slate-600">
-          Prototype login only. It stores this on your browser so Locker remembers you after refresh.
+          Your alias and school are saved so Locker can connect drops to a public handle.
         </p>
       </form>
     </div>

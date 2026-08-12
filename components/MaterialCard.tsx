@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StudyMaterial, MATERIAL_TYPES } from "@/lib/mockData";
 import { ArrowUp, Bookmark, Flag, Archive } from "lucide-react";
+import { reportMaterial, upvoteMaterial } from "@/lib/lockerData";
 import { clsx } from "clsx";
 
 interface MaterialCardProps {
@@ -10,9 +11,10 @@ interface MaterialCardProps {
   onOpen: (m: StudyMaterial) => void;
   matchReason?: string;
   matchedTerms?: string[];
+  profileId?: string;
 }
 
-export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [] }: MaterialCardProps) {
+export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [], profileId }: MaterialCardProps) {
   const [upvotes, setUpvotes] = useState(material.upvotes);
   const [upvoted, setUpvoted] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -21,6 +23,7 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [] 
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!upvoted) void upvoteMaterial(material.id, profileId).catch(console.warn);
     setUpvoted((v) => !v);
     setUpvotes((v) => upvoted ? v - 1 : v + 1);
   };
@@ -82,7 +85,7 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [] 
             <ArrowUp size={13} /> {upvotes}
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); setReported(true); }}
+            onClick={(e) => { e.stopPropagation(); setReported(true); void reportMaterial(material.id, profileId).catch(console.warn); }}
             className={clsx("rounded-full p-2", reported ? "text-red-400" : "text-slate-600")}
             aria-label="Report"
           >

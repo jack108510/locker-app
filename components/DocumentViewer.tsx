@@ -10,42 +10,20 @@ interface DocumentViewerProps {
   onClose: () => void;
 }
 
-const MOCK_PAGE_CONTENT: Record<number, string[]> = {
-  1: [
-    "Unit 4: Chemical Reactions & Stoichiometry",
+function buildScanLines(material: StudyMaterial) {
+  const text = material.ocrText || material.preview;
+  const lines = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return [
+    material.title,
+    `${material.course}${material.teacher ? ` · ${material.teacher}` : ""}`,
     "",
-    "Key Concepts:",
-    "• Balancing chemical equations using conservation of mass",
-    "• Molar ratios from balanced equations",
-    "• Limiting reagent vs. excess reagent",
-    "• Percent yield = (actual / theoretical) × 100",
-    "",
-    "Tip: Always balance atoms in this order: metals → nonmetals → H → O",
-  ],
-  2: [
-    "Stoichiometry — Worked Examples",
-    "",
-    "Example 1: How many grams of H₂O form from 4g H₂ + excess O₂?",
-    "  2H₂ + O₂ → 2H₂O",
-    "  4g H₂ × (1 mol / 2g) × (2 mol H₂O / 2 mol H₂) × (18g / 1 mol) = 36g",
-    "",
-    "Example 2: Limiting reagent",
-    "  Given 3 mol A + 5 mol B → A₂B₃",
-    "  Need: 2A per B₃ → check which runs out first.",
-  ],
-  3: [
-    "Percent Yield",
-    "",
-    "Formula: % yield = (actual yield / theoretical yield) × 100",
-    "",
-    "Common sources of error:",
-    "• Side reactions consuming reactants",
-    "• Incomplete reactions",
-    "• Transfer losses during lab procedure",
-    "",
-    "Always report yield with correct sig figs!",
-  ],
-};
+    ...(lines.length ? lines : ["No scan text preview is available for this drop yet."]),
+  ];
+}
 
 export function DocumentViewer({ material, onClose }: DocumentViewerProps) {
   const [page, setPage] = useState(1);
@@ -54,8 +32,9 @@ export function DocumentViewer({ material, onClose }: DocumentViewerProps) {
   const [reported, setReported] = useState(false);
   const [upvotes, setUpvotes] = useState(material.upvotes);
 
-  const totalPages = material.pages ?? 3;
-  const content = MOCK_PAGE_CONTENT[Math.min(page, 3)] ?? MOCK_PAGE_CONTENT[1];
+  const scanLines = buildScanLines(material);
+  const totalPages = Math.max(1, material.pages ?? 1);
+  const content = scanLines.slice((page - 1) * 8, page * 8);
   const typeInfo = MATERIAL_TYPES.find((t) => t.value === material.type);
 
   return (

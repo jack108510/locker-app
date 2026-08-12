@@ -23,6 +23,7 @@ export interface StudyMaterial {
   blockedReason?: string;
   tags: string[];
   preview: string;
+  ocrText?: string;
   pages?: number;
 }
 
