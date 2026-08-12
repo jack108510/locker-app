@@ -88,3 +88,40 @@ It creates:
 - `locker_stats` view
 
 RLS is enabled with low-friction public insert/read policies for this launch prototype.
+
+## iOS / Apple prep
+
+Capacitor has been added for iOS packaging.
+
+```bash
+npm run build:ios
+npm run ios:open
+```
+
+Native iOS project:
+
+```bash
+ios/App/App.xcworkspace
+```
+
+Bundle ID:
+
+```bash
+com.jswenterprises.locker
+```
+
+App Store preparation docs live in:
+
+```bash
+app-store/AppStore.md
+```
+
+Required Apple review support added:
+
+- Privacy policy page: `/privacy`
+- Terms/content policy page: `/terms`
+- Camera/photo permission strings in `ios/App/App/Info.plist`
+- Supabase Storage bucket for submitted scan images
+- Report flow with reasons
+- Local source-blocking control
+- Moderation queue/report database objects

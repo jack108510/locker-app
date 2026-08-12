@@ -23,6 +23,7 @@ type LockerUser = {
 
 const USERS_KEY = "locker-users-v1";
 const SESSION_KEY = "locker-session-v1";
+const BLOCKED_SOURCES_KEY = "locker-blocked-sources-v1";
 
 export default function Home() {
   const [onboarded, setOnboarded] = useState(false);
@@ -44,6 +45,7 @@ export default function Home() {
   const [filterCourse, setFilterCourse] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [blockedSources, setBlockedSources] = useState<string[]>([]);
 
   useEffect(() => {
     // localStorage hydration is the whole point of this prototype login.
@@ -59,6 +61,7 @@ export default function Home() {
       setOnboarded(Boolean(savedUser.school));
       setTab(savedUser.school ? "browse" : "home");
     }
+    setBlockedSources(readBlockedSources());
     setAuthReady(true);
   }, []);
 
@@ -127,14 +130,14 @@ export default function Home() {
 
   const searchResults = useMemo(() => {
     return rankMaterials({
-      materials: approvedFeed,
+      materials: approvedFeed.filter((m) => !blockedSources.includes(m.pseudonym)),
       query: searchQuery,
       school: mySchool || filterSchool,
       course: filterCourse,
       type: filterType,
       mySchool,
     });
-  }, [approvedFeed, filterSchool, filterCourse, filterType, searchQuery, mySchool]);
+  }, [approvedFeed, blockedSources, filterSchool, filterCourse, filterType, searchQuery, mySchool]);
 
   const hasSearch = searchQuery.trim().length > 0;
   const totalSubmitted = communityStats.submitted + pendingQueue.length;
@@ -223,6 +226,11 @@ export default function Home() {
                       matchReason={hasSearch ? r.reason : undefined}
                       matchedTerms={hasSearch ? r.terms : undefined}
                       profileId={profileId}
+                      onBlockSource={(source) => {
+                        const next = Array.from(new Set([...blockedSources, source]));
+                        setBlockedSources(next);
+                        window.localStorage.setItem(BLOCKED_SOURCES_KEY, JSON.stringify(next));
+                      }}
                     />
                   ))}
                 </div>
@@ -258,6 +266,16 @@ function MiniStat({ value, label }: { value: string; label: string }) {
       <p className="text-[10px] uppercase tracking-[0.18em] text-slate-600">{label}</p>
     </div>
   );
+}
+
+function readBlockedSources(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(BLOCKED_SOURCES_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 function readUsers(): LockerUser[] {
@@ -501,7 +519,10 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
           >
             Search the test bank <ArrowRight size={16} />
           </button>
-          <p className="text-center text-xs text-slate-600">Anonymous drops · only your school · reviewed before public</p>
+          <div className="space-y-2 text-center text-xs text-slate-600">
+            <p>Anonymous drops · only your school · reviewed before public</p>
+            <p><a className="text-slate-500 underline underline-offset-4" href="/privacy">Privacy</a> · <a className="text-slate-500 underline underline-offset-4" href="/terms">Terms</a></p>
+          </div>
         </div>
       </section>
     </div>

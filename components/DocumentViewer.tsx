@@ -61,6 +61,13 @@ export function DocumentViewer({ material, onClose }: DocumentViewerProps) {
           </button>
         </div>
 
+        {material.imageUrl && (
+          <div className="mx-4 mt-4 overflow-hidden rounded-2xl border border-[#2a2b45] bg-black">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={material.imageUrl} alt="Submitted scan" className="max-h-64 w-full object-contain" />
+          </div>
+        )}
+
         {/* Page viewer */}
         <div className="bg-[#0e0f1a] mx-4 my-4 rounded-2xl border border-[#2a2b45] min-h-[220px] p-5">
           <div className="text-[11px] text-slate-600 mb-3 flex justify-between font-mono">

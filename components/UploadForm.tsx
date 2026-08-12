@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SCHOOLS, MATERIAL_TYPES, moderateUpload, MaterialType, StudyMaterial } from "@/lib/mockData";
-import { submitMaterial } from "@/lib/lockerData";
+import { submitMaterial, uploadMaterialImage } from "@/lib/lockerData";
 import { supabaseConfigured } from "@/lib/supabase";
 import { Upload, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2, Camera, Sparkles } from "lucide-react";
 import { clsx } from "clsx";
@@ -185,6 +185,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
     let newMaterial = localMaterial;
     if (supabaseConfigured) {
       try {
+        const imageUrl = file ? await uploadMaterialImage(file, school) : undefined;
         newMaterial = await submitMaterial({
           profileId,
           title,
@@ -199,6 +200,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
           scannedText,
           preview: localMaterial.preview,
           pages: 1,
+          imageUrl,
         });
         setSubmitError("");
       } catch (error) {

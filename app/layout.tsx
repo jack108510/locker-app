@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Locker — Past quizzes and exams from students near you.",
-  description: "A crowdsourced school database where students scan old assignments, quizzes, and exams so anyone who signs up can search real past test material.",
+  title: "Locker — Your school test bank",
+  description: "A school-specific test-prep database where students scan old assignments, quizzes, exams, and answer-filled copies.",
   keywords: ["past exams", "old quizzes", "assignments", "test bank", "school", "crowdsourced"],
 };
 

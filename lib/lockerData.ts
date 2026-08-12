@@ -25,6 +25,7 @@ type DbMaterial = {
   preview: string | null;
   ocr_text: string | null;
   pages: number | null;
+  image_url: string | null;
 };
 
 export function dbToMaterial(row: DbMaterial): StudyMaterial {
@@ -45,6 +46,7 @@ export function dbToMaterial(row: DbMaterial): StudyMaterial {
     preview: row.preview || row.ocr_text?.slice(0, 220) || "Scanned past material.",
     ocrText: row.ocr_text ?? undefined,
     pages: row.pages ?? 1,
+    imageUrl: row.image_url ?? undefined,
   };
 }
 
@@ -52,7 +54,7 @@ export async function loadApprovedMaterials(school?: string): Promise<StudyMater
   if (!supabase) return [];
   let query = supabase
     .from("locker_materials")
-    .select("id,title,material_type,school,course,teacher,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages")
+    .select("id,title,material_type,school,course,teacher,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages,image_url")
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(50);
@@ -109,6 +111,7 @@ export async function submitMaterial(input: {
   scannedText: string;
   preview: string;
   pages?: number;
+  imageUrl?: string;
 }): Promise<StudyMaterial> {
   if (!supabase) throw new Error("Supabase is not configured");
   const payload = {
@@ -125,12 +128,13 @@ export async function submitMaterial(input: {
     ocr_text: input.scannedText || null,
     preview: input.preview,
     pages: input.pages ?? 1,
+    image_url: input.imageUrl || null,
   };
   if (input.status === "approved") {
     const { data, error } = await supabase
       .from("locker_materials")
       .insert(payload)
-      .select("id,title,material_type,school,course,teacher,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages")
+      .select("id,title,material_type,school,course,teacher,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages,image_url")
       .single();
     if (error) throw error;
     return dbToMaterial(data as DbMaterial);
@@ -155,12 +159,28 @@ export async function submitMaterial(input: {
     preview: input.preview,
     ocrText: input.scannedText || undefined,
     pages: input.pages ?? 1,
+    imageUrl: input.imageUrl,
   };
 }
 
-export async function reportMaterial(materialId: string, profileId?: string) {
+export async function uploadMaterialImage(file: File, school: string) {
+  if (!supabase) return undefined;
+  const safeSchool = school.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "unknown-school";
+  const ext = file.type.includes("png") ? "png" : file.type.includes("webp") ? "webp" : "jpg";
+  const path = `pending/${safeSchool}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("locker-scans").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type || "image/jpeg",
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from("locker-scans").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function reportMaterial(materialId: string, profileId?: string, reason = "reported") {
   if (!supabase) return;
-  await supabase.from("locker_reports").insert({ material_id: materialId, profile_id: profileId || null, reason: "reported" });
+  await supabase.from("locker_reports").insert({ material_id: materialId, profile_id: profileId || null, reason });
 }
 
 export async function upvoteMaterial(materialId: string, profileId?: string) {

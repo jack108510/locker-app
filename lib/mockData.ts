@@ -26,6 +26,7 @@ export interface StudyMaterial {
   tags: string[];
   preview: string;
   ocrText?: string;
+  imageUrl?: string;
   pages?: number;
 }
 

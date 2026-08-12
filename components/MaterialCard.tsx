@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { StudyMaterial, MATERIAL_TYPES } from "@/lib/mockData";
-import { ArrowUp, Bookmark, Flag, Archive } from "lucide-react";
+import { ArrowUp, Bookmark, Flag, Archive, Ban } from "lucide-react";
 import { reportMaterial, upvoteMaterial } from "@/lib/lockerData";
 import { clsx } from "clsx";
 
@@ -12,13 +12,16 @@ interface MaterialCardProps {
   matchReason?: string;
   matchedTerms?: string[];
   profileId?: string;
+  onBlockSource?: (pseudonym: string) => void;
 }
 
-export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [], profileId }: MaterialCardProps) {
+export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [], profileId, onBlockSource }: MaterialCardProps) {
   const [upvotes, setUpvotes] = useState(material.upvotes);
   const [upvoted, setUpvoted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [reported, setReported] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("current test or private key");
   const typeInfo = MATERIAL_TYPES.find((t) => t.value === material.type);
 
   const handleUpvote = (e: React.MouseEvent) => {
@@ -27,6 +30,15 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
     setUpvoted((v) => !v);
     setUpvotes((v) => upvoted ? v - 1 : v + 1);
   };
+
+  if (reported) {
+    return (
+      <article className="rounded-[1.65rem] border border-red-400/20 bg-red-400/[0.045] p-4">
+        <p className="text-sm font-medium text-red-100">Reported for review</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">Locker will check this drop and remove it if it breaks the content policy.</p>
+      </article>
+    );
+  }
 
   return (
     <article
@@ -85,14 +97,39 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
             <ArrowUp size={13} /> {upvotes}
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); setReported(true); void reportMaterial(material.id, profileId).catch(console.warn); }}
-            className={clsx("rounded-full p-2", reported ? "text-red-400" : "text-slate-600")}
+            onClick={(e) => { e.stopPropagation(); onBlockSource?.(material.pseudonym); }}
+            className="rounded-full p-2 text-slate-600"
+            aria-label="Block this source"
+            title="Block this source"
+          >
+            <Ban size={13} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setReportOpen(true); }}
+            className="rounded-full p-2 text-slate-600"
             aria-label="Report"
           >
-            <Flag size={13} fill={reported ? "currentColor" : "none"} />
+            <Flag size={13} />
           </button>
         </div>
       </div>
+      {reportOpen && (
+        <div onClick={(e) => e.stopPropagation()} className="mt-4 rounded-2xl border border-red-400/15 bg-black/25 p-3">
+          <p className="mb-2 text-xs font-medium text-red-100">Report this drop</p>
+          <select value={reportReason} onChange={(e) => setReportReason(e.target.value)} className="w-full rounded-xl border border-white/10 bg-[#111217] px-3 py-2 text-xs text-white">
+            <option value="current test or private key">Current test or private key</option>
+            <option value="personal student info">Personal student info</option>
+            <option value="copyright or not allowed">Copyright or not allowed</option>
+            <option value="spam or abuse">Spam or abuse</option>
+          </select>
+          <button
+            onClick={() => { setReported(true); setReportOpen(false); void reportMaterial(material.id, profileId, reportReason).catch(console.warn); }}
+            className="mt-2 w-full rounded-full bg-red-400 px-4 py-2 text-xs font-semibold text-black"
+          >
+            Send report
+          </button>
+        </div>
+      )}
     </article>
   );
 }
