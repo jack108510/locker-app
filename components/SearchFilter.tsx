@@ -24,13 +24,13 @@ export function SearchFilter({
       <div>
         <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
           <Sparkles size={13} className="text-cyan-300" />
-          <span>Search old assignments, quizzes, and exams</span>
+          <span>Search your school&apos;s material + answers</span>
         </div>
         <div className="relative">
           <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
-            placeholder="e.g. chem bonding quiz questions"
+            placeholder="e.g. Clarke bonding quiz answers"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-11 text-sm text-white outline-none placeholder:text-slate-600 focus:border-white/20"

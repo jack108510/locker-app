@@ -65,9 +65,9 @@ export default function Home() {
   useEffect(() => {
     let active = true;
     async function loadLiveData() {
-      if (!supabaseConfigured) return;
+      if (!supabaseConfigured || !mySchool) return;
       try {
-        const [materials, stats] = await Promise.all([loadApprovedMaterials(), loadCommunityStats()]);
+        const [materials, stats] = await Promise.all([loadApprovedMaterials(mySchool), loadCommunityStats(mySchool)]);
         if (!active) return;
         setApprovedFeed(materials.length ? materials : APPROVED_MATERIALS);
         setCommunityStats(stats);
@@ -79,7 +79,7 @@ export default function Home() {
     }
     void loadLiveData();
     return () => { active = false; };
-  }, []);
+  }, [mySchool]);
 
   const saveUser = (nextUser: LockerUser) => {
     const users = readUsers().filter((u) => u.username !== nextUser.username);
@@ -129,7 +129,7 @@ export default function Home() {
     return rankMaterials({
       materials: approvedFeed,
       query: searchQuery,
-      school: filterSchool,
+      school: mySchool || filterSchool,
       course: filterCourse,
       type: filterType,
       mySchool,
@@ -137,7 +137,7 @@ export default function Home() {
   }, [approvedFeed, filterSchool, filterCourse, filterType, searchQuery, mySchool]);
 
   const hasSearch = searchQuery.trim().length > 0;
-  const totalSubmitted = communityStats.submitted + approvedFeed.length - APPROVED_MATERIALS.length + pendingQueue.length;
+  const totalSubmitted = communityStats.submitted + pendingQueue.length;
 
   return (
     <>
@@ -177,7 +177,7 @@ export default function Home() {
               <div className="space-y-3">
                 <div className="space-y-1">
                   <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white">Your feed</h1>
-                  <p className="text-sm text-slate-500">Past assignments, quizzes, and exams near {mySchool.replace(" High School", "") || "you"}.</p>
+                  <p className="text-sm text-slate-500">Only material from {mySchool.replace(" High School", "") || "your school"}.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <MiniStat value={totalSubmitted.toLocaleString()} label="submitted" />
@@ -203,7 +203,7 @@ export default function Home() {
               {searchResults.length === 0 ? (
                 <div className="text-center py-16">
                   <Archive size={36} className="text-slate-700 mx-auto mb-3" />
-                  <p className="text-slate-500 text-sm">No past test material matched that search.</p>
+                  <p className="text-slate-500 text-sm">No material from your school matched that search.</p>
                   <button
                     onClick={() => { setFilterSchool("all"); setFilterCourse("all"); setFilterType("all"); setSearchQuery(""); }}
                     className="mt-3 text-cyan-300 text-sm hover:text-cyan-200 transition-colors"
@@ -214,7 +214,7 @@ export default function Home() {
               ) : (
                 <div className="space-y-3">
                   {hasSearch && <SearchAnswer query={searchQuery} results={searchResults} />}
-                  <p className="text-xs text-slate-600">{searchResults.length} {hasSearch ? "matched drops" : "public drops"}</p>
+                  <p className="text-xs text-slate-600">{searchResults.length} {hasSearch ? "matched school drops" : "school drops"}</p>
                   {searchResults.map((r) => (
                     <MaterialCard
                       key={r.material.id}
@@ -451,7 +451,7 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
       <section className="min-h-[72vh] flex flex-col justify-between">
         <div className="space-y-7">
           <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-300/[0.06] px-3 py-1 text-xs text-cyan-100">
-            <Database size={13} /> Crowdsourced test bank
+            <Database size={13} /> Your school test bank
           </div>
 
           <div className="space-y-4">
@@ -459,7 +459,7 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
               Old tests.<br />New edge.
             </h1>
             <p className="max-w-[20rem] text-base leading-7 text-slate-400">
-              Locker is a shared database of old assignments, quizzes, and exams scanned by students around your school.
+              Locker is a database for your school: old assignments, quizzes, exams, and answer-filled copies scanned by students there.
             </p>
           </div>
 
@@ -473,21 +473,21 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
                 <ScanText className="mt-0.5 text-cyan-300" size={18} />
                 <div>
                   <p className="text-sm font-medium text-white">Scan past material</p>
-                  <p className="text-xs leading-5 text-slate-500">Old assignments, quizzes, exams, review packets.</p>
+                  <p className="text-xs leading-5 text-slate-500">Old assignments, quizzes, exams, and versions with answers.</p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <ShieldCheck className="mt-0.5 text-indigo-300" size={18} />
                 <div>
                   <p className="text-sm font-medium text-white">Moderated into the database</p>
-                  <p className="text-xs leading-5 text-slate-500">Current tests, answer keys, and personal info get blocked.</p>
+                  <p className="text-xs leading-5 text-slate-500">Current tests, teacher-only keys, and personal info get blocked.</p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <Archive className="mt-0.5 text-fuchsia-300" size={18} />
                 <div>
                   <p className="text-sm font-medium text-white">Anyone signed up can search it</p>
-                  <p className="text-xs leading-5 text-slate-500">Find real past questions by topic, course, or school.</p>
+                  <p className="text-xs leading-5 text-slate-500">Find real past questions and answers by topic, class, or teacher.</p>
                 </div>
               </div>
             </div>
@@ -501,7 +501,7 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
           >
             Search the test bank <ArrowRight size={16} />
           </button>
-          <p className="text-center text-xs text-slate-600">Anonymous drops · shared with every signup · reviewed before public</p>
+          <p className="text-center text-xs text-slate-600">Anonymous drops · only your school · reviewed before public</p>
         </div>
       </section>
     </div>

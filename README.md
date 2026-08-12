@@ -1,6 +1,6 @@
 # Locker — Crowdsourced past-test database
 
-Mobile-first web app where students scan old assignments, quizzes, and exams into a shared searchable database available to anyone who signs up.
+Mobile-first web app where students scan old assignments, quizzes, and exams into a school-specific searchable database available to students from that school.
 
 ## Live data
 
@@ -51,20 +51,23 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Product Boundary
 
-Locker is a social experiment / crowdsourced test bank.
+Locker is a school-specific social experiment / crowdsourced test bank.
 
 Allowed:
 
 - old assignments
+- old assignments with answers
 - old quizzes
+- old quizzes with answers
 - old exams
-- worksheets / practice tests / review packets
+- old exams with answers
+- worksheets with or without answers
 - class and teacher tags for finding relevant past material
 
 Blocked or queued for review:
 
 - active/current tests
-- answer keys
+- teacher-only answer keys
 - teacher-only copies
 - student grades or personal info
 

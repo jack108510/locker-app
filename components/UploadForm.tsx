@@ -238,7 +238,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
       <div className="flex flex-col items-center text-center py-12 gap-4 animate-slide-up px-4">
         <CheckCircle size={52} className="text-emerald-400" strokeWidth={1.5} />
         <h3 className="text-xl font-bold text-white">Added to the public database</h3>
-        <p className="text-slate-400 text-sm max-w-xs">{submitError || `Your past material passed review and is searchable by anyone signed up near ${school}.`}</p>
+        <p className="text-slate-400 text-sm max-w-xs">{submitError || `Your past material passed review and is searchable by students from ${school}.`}</p>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all">
           Scan another
         </button>
@@ -288,7 +288,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
     <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
       <div>
         <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Scan old material</h2>
-        <p className="text-sm text-slate-500">Scan an old assignment, quiz, or exam. If it clears review, everyone signed up can search it.</p>
+        <p className="text-sm text-slate-500">Scan old material from your school. Include the answers if they are on the page.</p>
       </div>
 
       <button
@@ -302,8 +302,8 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
             <div className="mb-3 inline-flex rounded-full bg-cyan-300/10 px-3 py-1 text-[11px] font-medium text-cyan-200">
               public database drop
             </div>
-            <p className="text-lg font-medium text-white">Scan old assignment / quiz / exam</p>
-            <p className="mt-1 text-sm leading-6 text-slate-400">Capture a page, pull text, add it to the shared test bank.</p>
+            <p className="text-lg font-medium text-white">Scan assignment / quiz / exam with answers</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">Capture a page, pull text, add it to your school&apos;s database.</p>
           </div>
           <div className="rounded-full bg-white text-black p-4">
             <Camera size={20} />
@@ -396,7 +396,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
             <>
               <Upload size={22} className="text-slate-600 mx-auto mb-2" />
               <p className="text-sm text-slate-400 font-medium">Or pick a photo of old material</p>
-              <p className="text-xs text-slate-600 mt-1">Assignments, quizzes, and exams only</p>
+              <p className="text-xs text-slate-600 mt-1">Assignments, quizzes, exams, answers</p>
             </>
           )}
         </div>
@@ -538,7 +538,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
 
       {/* Review notice */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-slate-500">
-        Public after review. Old assignments, quizzes, and exams are allowed; current tests, answer keys, and personal info stay blocked.
+        Public to your school after review. Old assignments/quizzes/exams with answers are allowed; current tests, teacher-only keys, and personal info stay blocked.
       </div>
 
       <button

@@ -1,10 +1,12 @@
 export type MaterialType =
   | "assignment"
+  | "assignment-answers"
   | "quiz"
+  | "quiz-answers"
   | "exam"
-  | "review-packet"
-  | "practice-test"
-  | "worksheet";
+  | "exam-answers"
+  | "worksheet"
+  | "worksheet-answers";
 
 export type ModerationStatus = "approved" | "pending" | "blocked";
 
@@ -82,19 +84,21 @@ export const SCHOOLS: School[] = [
 ];
 
 export const MATERIAL_TYPES: { value: MaterialType; label: string; emoji: string }[] = [
-  { value: "assignment", label: "Old Assignment", emoji: "" },
-  { value: "quiz", label: "Past Quiz", emoji: "" },
-  { value: "exam", label: "Past Exam", emoji: "" },
-  { value: "review-packet", label: "Review Packet", emoji: "" },
-  { value: "practice-test", label: "Practice Test", emoji: "" },
+  { value: "assignment", label: "Assignment", emoji: "" },
+  { value: "assignment-answers", label: "Assignment + Answers", emoji: "" },
+  { value: "quiz", label: "Quiz", emoji: "" },
+  { value: "quiz-answers", label: "Quiz + Answers", emoji: "" },
+  { value: "exam", label: "Exam", emoji: "" },
+  { value: "exam-answers", label: "Exam + Answers", emoji: "" },
   { value: "worksheet", label: "Worksheet", emoji: "" },
+  { value: "worksheet-answers", label: "Worksheet + Answers", emoji: "" },
 ];
 
 export const APPROVED_MATERIALS: StudyMaterial[] = [
   {
     id: "h1",
     title: "Chemistry 12 Bonding Quiz — Fall 2022",
-    type: "quiz",
+    type: "quiz-answers",
     school: "Halifax West High School",
     course: "Chemistry 12",
     teacher: "Ms. Clarke",
@@ -103,14 +107,14 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     upvotes: 58,
     saves: 34,
     status: "approved",
-    tags: ["bonding", "VSEPR", "quiz"],
-    preview: "Scanned past quiz covering bonding, polarity, molecular shapes, and intermolecular forces. Useful for seeing how questions were worded.",
+    tags: ["bonding", "VSEPR", "quiz", "answers"],
+    preview: "Scanned past quiz with student answers covering bonding, polarity, molecular shapes, and intermolecular forces.",
     pages: 7,
   },
   {
     id: "h2",
     title: "Biology 11 Cell Unit Assignment",
-    type: "assignment",
+    type: "assignment-answers",
     school: "Halifax West High School",
     course: "Biology 11",
     teacher: "Mr. Bennett",
@@ -119,8 +123,8 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     upvotes: 41,
     saves: 29,
     status: "approved",
-    tags: ["cells", "organelles", "assignment"],
-    preview: "Old assignment page covering organelles, membrane transport, microscope terms, and diagrams from the cell unit.",
+    tags: ["cells", "organelles", "assignment", "answers"],
+    preview: "Old assignment with answers covering organelles, membrane transport, microscope terms, and diagrams from the cell unit.",
     pages: 3,
   },
   {
@@ -148,8 +152,7 @@ export const COMMUNITY_STATS = {
 };
 
 const RISKY_KEYWORDS = [
-  "exam key", "answer key", "test answers", "midterm answers", "final exam answers",
-  "teacher copy", "teacher edition", "grade book", "student grades", "roster",
+  "teacher copy", "teacher edition", "official answer key", "grade book", "student grades", "roster",
   "current exam", "this semester", "this year", "2024 exam", "actual test",
 ];
 
@@ -166,12 +169,12 @@ export function moderateUpload(
     if (reviewText.includes(kw)) {
       return {
         status: "blocked",
-        reason: `Upload text contains prohibited keyword: "${kw}". Current/private exams, answer keys, and personal student info cannot be uploaded.`,
+        reason: `Upload text contains prohibited keyword: "${kw}". Current/private exams, teacher-only keys, and personal student info cannot be uploaded.`,
       };
     }
   }
 
-  const alwaysPending = ["exam", "quiz"];
+  const alwaysPending = ["exam", "exam-answers", "quiz", "quiz-answers"] ;
   if (alwaysPending.includes(type)) {
     return { status: "pending" };
   }

@@ -48,27 +48,40 @@ export function dbToMaterial(row: DbMaterial): StudyMaterial {
   };
 }
 
-export async function loadApprovedMaterials(): Promise<StudyMaterial[]> {
+export async function loadApprovedMaterials(school?: string): Promise<StudyMaterial[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from("locker_materials")
     .select("id,title,material_type,school,course,teacher,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages")
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(50);
 
+  if (school) query = query.eq("school", school);
+  const { data, error } = await query;
+
   if (error) throw error;
   return (data ?? []).map((row) => dbToMaterial(row as DbMaterial));
 }
 
-export async function loadCommunityStats() {
+export async function loadCommunityStats(school?: string) {
   if (!supabase) return COMMUNITY_STATS;
-  const { data, error } = await supabase
-    .from("locker_stats")
-    .select("submitted,approved,schools")
-    .single();
-  if (error) throw error;
-  return data ?? COMMUNITY_STATS;
+  if (!school) {
+    const { data, error } = await supabase
+      .from("locker_stats")
+      .select("submitted,approved,schools")
+      .single();
+    if (error) throw error;
+    return data ?? COMMUNITY_STATS;
+  }
+
+  const [{ count: submitted, error: submittedError }, { count: approved, error: approvedError }] = await Promise.all([
+    supabase.from("locker_materials").select("id", { count: "exact", head: true }).eq("school", school).neq("status", "blocked"),
+    supabase.from("locker_materials").select("id", { count: "exact", head: true }).eq("school", school).eq("status", "approved"),
+  ]);
+  if (submittedError) throw submittedError;
+  if (approvedError) throw approvedError;
+  return { submitted: submitted ?? 0, approved: approved ?? 0, schools: 1 };
 }
 
 export async function upsertProfile(input: { username: string; pseudonym: string; school: string }): Promise<LockerProfile> {

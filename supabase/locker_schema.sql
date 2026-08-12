@@ -16,7 +16,7 @@ create table if not exists public.locker_materials (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid references public.locker_profiles(id) on delete set null,
   title text not null,
-  material_type text not null check (material_type in ('assignment','quiz','exam','review-packet','practice-test','worksheet')),
+  material_type text not null check (material_type in ('assignment','assignment-answers','quiz','quiz-answers','exam','exam-answers','worksheet','worksheet-answers')),
   school text not null,
   course text not null default 'General',
   teacher text,
@@ -93,24 +93,24 @@ values ('seed-harbourfox', 'HarbourFox42', 'Halifax West High School')
 on conflict (username) do nothing;
 
 insert into public.locker_materials (title, material_type, school, course, teacher, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
-select 'Chemistry 12 Bonding Quiz — Fall 2022', 'quiz', 'Halifax West High School', 'Chemistry 12', 'Ms. Clarke', 'HarbourFox42', 'approved',
-       array['bonding','VSEPR','quiz','Chemistry 12','Ms. Clarke'],
+select 'Chemistry 12 Bonding Quiz — Fall 2022', 'quiz-answers', 'Halifax West High School', 'Chemistry 12', 'Ms. Clarke', 'HarbourFox42', 'approved',
+       array['bonding','VSEPR','quiz','answers','Chemistry 12','Ms. Clarke'],
        'Bonding polarity molecular shapes VSEPR intermolecular forces multiple choice short answer.',
        'Scanned past quiz covering bonding, polarity, molecular shapes, and intermolecular forces. Useful for seeing how questions were worded.',
        7, 58, 34
 where not exists (select 1 from public.locker_materials where title = 'Chemistry 12 Bonding Quiz — Fall 2022');
 
 insert into public.locker_materials (title, material_type, school, course, teacher, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
-select 'Biology 11 Cell Unit Assignment', 'assignment', 'Halifax West High School', 'Biology 11', 'Mr. Bennett', 'NorthOwl19', 'approved',
-       array['cells','organelles','assignment','Biology 11','Mr. Bennett'],
+select 'Biology 11 Cell Unit Assignment', 'assignment-answers', 'Halifax West High School', 'Biology 11', 'Mr. Bennett', 'NorthOwl19', 'approved',
+       array['cells','organelles','assignment','answers','Biology 11','Mr. Bennett'],
        'Cell organelles membrane transport microscope terms diagrams assignment.',
        'Old assignment page covering organelles, membrane transport, microscope terms, and diagrams from the cell unit.',
        3, 41, 29
 where not exists (select 1 from public.locker_materials where title = 'Biology 11 Cell Unit Assignment');
 
 insert into public.locker_materials (title, material_type, school, course, teacher, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
-select 'Math 11 Functions Quiz — 2021', 'quiz', 'Citadel High School', 'Math 11', 'Ms. Rivera', 'FogHawk77', 'approved',
-       array['functions','quadratics','graphs','Math 11','Ms. Rivera'],
+select 'Math 11 Functions Quiz — 2021', 'quiz-answers', 'Citadel High School', 'Math 11', 'Ms. Rivera', 'FogHawk77', 'approved',
+       array['functions','quadratics','graphs','answers','Math 11','Ms. Rivera'],
        'Functions transformations graphing domain range quadratics quiz.',
        'Past quiz scan with functions, transformations, graphing, and domain/range questions.',
        5, 36, 22
