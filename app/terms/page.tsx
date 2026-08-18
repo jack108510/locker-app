@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function TermsPage() {
   return (
     <main className="mx-auto min-h-screen max-w-md bg-[#08090d] px-6 py-8 text-slate-300">
-      <Link href="/" className="text-sm text-cyan-300">← Back to Locker</Link>
+      <Link href="../" className="text-sm text-cyan-300">← Back to Locker</Link>
       <h1 className="mt-8 text-4xl font-semibold tracking-[-0.06em] text-white">Terms & Content Policy</h1>
       <p className="mt-3 text-sm leading-6 text-slate-500">Last updated: August 12, 2026</p>
 

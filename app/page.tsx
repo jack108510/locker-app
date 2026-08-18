@@ -521,7 +521,7 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
           </button>
           <div className="space-y-2 text-center text-xs text-slate-600">
             <p>Anonymous drops · only your school · reviewed before public</p>
-            <p><a className="text-slate-500 underline underline-offset-4" href="/privacy">Privacy</a> · <a className="text-slate-500 underline underline-offset-4" href="/terms">Terms</a></p>
+            <p><a className="text-slate-500 underline underline-offset-4" href="privacy">Privacy</a> · <a className="text-slate-500 underline underline-offset-4" href="terms">Terms</a></p>
           </div>
         </div>
       </section>
