@@ -18,8 +18,8 @@ const NAV_ITEMS = [
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
   return (
-    <nav className="px-5 pb-4 mt-auto">
-      <div className="mx-auto flex max-w-sm rounded-full border border-white/10 bg-[#111217]/90 p-1.5 shadow-2xl shadow-black/40 glass">
+    <nav className="mt-auto px-5 pb-4">
+      <div className="mx-auto flex max-w-sm rounded-full border border-white/10 bg-black/72 p-1.5 shadow-2xl shadow-black/50 glass">
         {NAV_ITEMS.map(({ id, label, Icon }) => {
           const isActive = active === id;
           return (
@@ -28,7 +28,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               onClick={() => onChange(id)}
               className={clsx(
                 "flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-3 text-xs font-medium transition",
-                isActive ? "bg-white text-black" : "text-slate-500"
+                isActive ? "bg-white text-black" : "text-white/45"
               )}
             >
               <Icon size={15} strokeWidth={2} />

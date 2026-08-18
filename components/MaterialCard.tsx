@@ -43,12 +43,12 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
   return (
     <article
       onClick={() => onOpen(material)}
-      className="group cursor-pointer rounded-[1.65rem] border border-white/10 bg-white/[0.035] p-4 transition active:scale-[0.99]"
+      className="group cursor-pointer rounded-[2rem] border border-white/10 bg-white/[0.055] p-4 shadow-2xl shadow-black/25 transition active:scale-[0.99]"
     >
       <div className="mb-5 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="mb-2 text-[11px] text-slate-500"><Archive size={12} className="inline-block -mt-0.5 mr-1 text-cyan-300" />{typeInfo?.label} · {material.pages ?? 1}p</p>
-          <h3 className="line-clamp-2 text-[15px] font-medium leading-6 text-white">
+          <p className="mb-2 text-[11px] text-white/42"><Archive size={12} className="inline-block -mt-0.5 mr-1 text-[#2997ff]" />{typeInfo?.label} · {material.pages ?? 1}p</p>
+          <h3 className="line-clamp-2 text-[17px] font-semibold leading-6 tracking-[-0.035em] text-white">
             {material.title}
           </h3>
         </div>
@@ -61,7 +61,7 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
         </button>
       </div>
 
-      <p className="mb-3 line-clamp-2 text-sm leading-6 text-slate-400">{material.preview}</p>
+      <p className="mb-3 line-clamp-2 text-sm leading-6 text-white/52">{material.preview}</p>
 
       <div className="mb-4 flex flex-wrap gap-1.5">
         <Tag>{material.course}</Tag>

@@ -151,9 +151,10 @@ export default function Home() {
         <DocumentViewer material={viewingMaterial} onClose={() => setViewingMaterial(null)} />
       )}
 
-      <div className="min-h-screen flex flex-col max-w-md mx-auto bg-[#08090d]">
+      <div className="relative mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-black">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_50%_0%,rgba(0,113,227,0.28),transparent_70%)]" />
         {/* Top bar */}
-        <header className="sticky top-0 z-40 bg-[#08090d]/85 glass px-5 py-4">
+        <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/72 px-5 py-4 glass">
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             {onboarded && mySchool && (
@@ -170,17 +171,18 @@ export default function Home() {
         </header>
 
         {/* Content */}
-        <main className="flex-1 px-5 pt-2 pb-nav overflow-y-auto">
+        <main className="relative z-10 flex-1 overflow-y-auto px-5 pt-2 pb-nav">
           {tab === "home" && (
             <LandingView onGetStarted={() => setTab("browse")} onboard={!onboarded ? undefined : () => setTab("browse")} />
           )}
 
           {tab === "browse" && (
             <div className="space-y-5">
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white">Your feed</h1>
-                  <p className="text-sm text-slate-500">Only material from {mySchool.replace(" High School", "") || "your school"}.</p>
+              <div className="space-y-4">
+                <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-5">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-[#2997ff]">{mySchool.replace(" High School", "") || "Your school"}</p>
+                  <h1 className="mt-2 text-4xl font-semibold leading-[0.95] tracking-[-0.075em] text-white">Search the archive.</h1>
+                  <p className="mt-3 text-sm leading-6 text-white/48">Assignments, quizzes, worksheets, and past exams — searchable by class, teacher, unit, year, and text from the page.</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <MiniStat value={totalSubmitted.toLocaleString()} label="submitted" />
@@ -217,7 +219,7 @@ export default function Home() {
               ) : (
                 <div className="space-y-3">
                   {hasSearch && <SearchAnswer query={searchQuery} results={searchResults} />}
-                  <p className="text-xs text-slate-600">{searchResults.length} {hasSearch ? "matched school drops" : "school drops"}</p>
+                  <p className="text-xs text-white/36">{searchResults.length} {hasSearch ? "matched school materials" : "school materials"}</p>
                   {searchResults.map((r) => (
                     <MaterialCard
                       key={r.material.id}
@@ -261,9 +263,9 @@ export default function Home() {
 
 function MiniStat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3">
-      <p className="text-lg font-semibold tracking-[-0.04em] text-white">{value}</p>
-      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-600">{label}</p>
+    <div className="rounded-3xl bg-[#f5f5f7] px-3 py-4 text-[#1d1d1f]">
+      <p className="text-xl font-semibold tracking-[-0.055em]">{value}</p>
+      <p className="text-[10px] uppercase tracking-[0.16em] text-black/42">{label}</p>
     </div>
   );
 }
@@ -335,7 +337,7 @@ function AuthGate({ onAuth }: { onAuth: (user: LockerUser) => void }) {
           Enter Locker <ArrowRight size={16} />
         </button>
         <p className="mt-4 text-center text-[11px] leading-5 text-slate-600">
-          Your alias and school are saved so Locker can connect drops to a public handle.
+          Your alias and school are saved so Locker can connect uploads to a public handle.
         </p>
       </form>
     </div>
@@ -465,66 +467,95 @@ function SearchAnswer({ query, results }: { query: string; results: RankedMateri
 
 function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onboard?: () => void }) {
   return (
-    <div className="animate-slide-up pt-8">
-      <section className="min-h-[72vh] flex flex-col justify-between">
-        <div className="space-y-7">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-300/[0.06] px-3 py-1 text-xs text-cyan-100">
-            <Database size={13} /> Your school test bank
+    <div className="animate-slide-up pt-6">
+      <section className="flex min-h-[78vh] flex-col justify-between">
+        <div className="space-y-8">
+          <div className="relative overflow-hidden rounded-[2.2rem] border border-white/10 bg-white/[0.045] p-4 blue-glow">
+            <div className="archive-grid pointer-events-none absolute inset-0 opacity-70" />
+            <div className="relative space-y-5">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[11px] font-medium text-white/70 glass">
+                <Database size={13} className="text-[#2997ff]" /> Your school&apos;s assignment database
+              </div>
+              <div className="space-y-3">
+                <h1 className="text-[3.65rem] font-semibold leading-[0.88] tracking-[-0.09em] text-white">
+                  Every class.<br />Every page.<br />Found fast.
+                </h1>
+                <p className="max-w-[21rem] text-[17px] leading-7 tracking-[-0.02em] text-white/66">
+                  Search assignments, quizzes, worksheets, and past exams from your own school — scanned by students, organized for studying.
+                </p>
+              </div>
+              <div className="relative rounded-[1.65rem] border border-white/10 bg-black/55 p-4 shadow-2xl shadow-black/50">
+                <div className="mb-3 flex items-center justify-between text-[11px] text-white/45">
+                  <span>Locker scan preview</span>
+                  <span className="text-[#2997ff]">OCR ready</span>
+                </div>
+                <div className="relative overflow-hidden rounded-2xl bg-[#f5f5f7] p-4 text-[#1d1d1f]">
+                  <div className="animate-scan-sweep absolute inset-x-4 top-1/2 h-0.5 bg-[#0071e3] shadow-[0_0_22px_rgba(0,113,227,.85)]" />
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/35">Grade 11 Chemistry</p>
+                  <p className="mt-2 text-lg font-semibold tracking-[-0.04em]">Bonding Assignment — Unit 3</p>
+                  <div className="mt-4 space-y-2 text-xs text-black/55">
+                    <p>1. Draw Lewis structures for each molecule.</p>
+                    <p>2. Identify molecular shape and polarity.</p>
+                    <p>3. Explain intermolecular forces.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <h1 className="text-[3.25rem] font-semibold tracking-[-0.08em] leading-[0.92] text-white">
-              Old tests.<br />New edge.
-            </h1>
-            <p className="max-w-[20rem] text-base leading-7 text-slate-400">
-              Locker is a database for your school: old assignments, quizzes, exams, and answer-filled copies scanned by students there.
-            </p>
+          <div className="grid grid-cols-3 gap-2">
+            <HeroTile value="1,284" label="materials" />
+            <HeroTile value="42" label="schools" />
+            <HeroTile value="OCR" label="searchable" />
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-4">
+          <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-4">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-600">How it works</p>
-              <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-200">public after review</span>
+              <p className="text-xs uppercase tracking-[0.24em] text-white/36">How it works</p>
+              <span className="rounded-full bg-[#0071e3]/15 px-2.5 py-1 text-[10px] font-semibold text-[#2997ff]">reviewed archive</span>
             </div>
             <div className="space-y-3">
-              <div className="flex gap-3">
-                <ScanText className="mt-0.5 text-cyan-300" size={18} />
-                <div>
-                  <p className="text-sm font-medium text-white">Scan past material</p>
-                  <p className="text-xs leading-5 text-slate-500">Old assignments, quizzes, exams, and versions with answers.</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <ShieldCheck className="mt-0.5 text-indigo-300" size={18} />
-                <div>
-                  <p className="text-sm font-medium text-white">Moderated into the database</p>
-                  <p className="text-xs leading-5 text-slate-500">Current tests, teacher-only keys, and personal info get blocked.</p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Archive className="mt-0.5 text-fuchsia-300" size={18} />
-                <div>
-                  <p className="text-sm font-medium text-white">Anyone signed up can search it</p>
-                  <p className="text-xs leading-5 text-slate-500">Find real past questions and answers by topic, class, or teacher.</p>
-                </div>
-              </div>
+              <FeatureRow icon={<ScanText size={18} />} title="Scan school material" text="Assignments, quizzes, worksheets, past exams, and completed copies." />
+              <FeatureRow icon={<ShieldCheck size={18} />} title="Cleaned and moderated" text="Active tests, teacher-only keys, and personal info stay blocked." />
+              <FeatureRow icon={<Archive size={18} />} title="Search the archive" text="Find material by class, teacher, grade, unit, year, or OCR text." />
             </div>
           </div>
         </div>
 
-        <div className="space-y-3 pb-6">
+        <div className="space-y-3 pb-6 pt-6">
           <button
             onClick={onboard ?? onGetStarted}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-sm font-semibold text-black transition active:scale-[0.99]"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-[15px] font-semibold tracking-[-0.01em] text-black transition active:scale-[0.99]"
           >
-            Search the test bank <ArrowRight size={16} />
+            Search the school archive <ArrowRight size={16} />
           </button>
-          <div className="space-y-2 text-center text-xs text-slate-600">
-            <p>Anonymous drops · only your school · reviewed before public</p>
-            <p><a className="text-slate-500 underline underline-offset-4" href="privacy">Privacy</a> · <a className="text-slate-500 underline underline-offset-4" href="terms">Terms</a></p>
+          <div className="space-y-2 text-center text-xs text-white/35">
+            <p>Anonymous uploads · school-only database · reviewed before public</p>
+            <p><a className="text-white/45 underline underline-offset-4" href="privacy">Privacy</a> · <a className="text-white/45 underline underline-offset-4" href="terms">Terms</a></p>
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function HeroTile({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-3xl bg-[#f5f5f7] px-3 py-4 text-center text-[#1d1d1f]">
+      <p className="text-xl font-semibold tracking-[-0.05em]">{value}</p>
+      <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-black/42">{label}</p>
+    </div>
+  );
+}
+
+function FeatureRow({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
+  return (
+    <div className="flex gap-3">
+      <div className="mt-0.5 text-[#2997ff]">{icon}</div>
+      <div>
+        <p className="text-sm font-medium text-white">{title}</p>
+        <p className="text-xs leading-5 text-white/42">{text}</p>
+      </div>
     </div>
   );
 }

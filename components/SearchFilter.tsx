@@ -24,16 +24,16 @@ export function SearchFilter({
       <div>
         <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
           <Sparkles size={13} className="text-cyan-300" />
-          <span>Search your school&apos;s material + answers</span>
+          <span>Search assignments, quizzes, worksheets, and past exams</span>
         </div>
         <div className="relative">
           <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
-            placeholder="e.g. Clarke bonding quiz answers"
+            placeholder="Search class, teacher, unit, topic..."
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-11 text-sm text-white outline-none placeholder:text-slate-600 focus:border-white/20"
+            className="w-full rounded-full border border-white/10 bg-white/[0.07] py-4 pl-11 pr-11 text-[15px] text-white outline-none placeholder:text-white/32 focus:border-[#2997ff]/45"
           />
           {query && (
             <button onClick={() => onQueryChange("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
@@ -60,10 +60,10 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
     <button
       onClick={onClick}
       className={clsx(
-        "rounded-full px-4 py-2 text-xs transition",
+        "rounded-full px-4 py-2.5 text-xs transition",
         active
           ? "bg-white text-black"
-          : "border border-white/10 bg-white/[0.03] text-slate-400"
+          : "border border-white/10 bg-white/[0.045] text-white/55"
       )}
     >
       {label}
