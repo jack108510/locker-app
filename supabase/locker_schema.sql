@@ -20,6 +20,9 @@ create table if not exists public.locker_materials (
   school text not null,
   course text not null default 'General',
   teacher text,
+  grade_level text,
+  unit_topic text,
+  material_year text,
   pseudonym text not null default 'Anonymous',
   status text not null default 'pending' check (status in ('approved','pending','blocked')),
   moderation_reason text,
@@ -27,6 +30,8 @@ create table if not exists public.locker_materials (
   ocr_text text,
   preview text not null default '',
   pages int not null default 1,
+  image_url text,
+  image_urls text[] not null default '{}',
   upvotes int not null default 0,
   saves int not null default 0,
   created_at timestamptz not null default now(),
@@ -92,24 +97,24 @@ insert into public.locker_profiles (username, pseudonym, school)
 values ('seed-harbourfox', 'HarbourFox42', 'Halifax West High School')
 on conflict (username) do nothing;
 
-insert into public.locker_materials (title, material_type, school, course, teacher, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
-select 'Chemistry 12 Bonding Quiz — Fall 2022', 'quiz-answers', 'Halifax West High School', 'Chemistry 12', 'Ms. Clarke', 'HarbourFox42', 'approved',
+insert into public.locker_materials (title, material_type, school, course, teacher, grade_level, unit_topic, material_year, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
+select 'Chemistry 12 Bonding Quiz — Fall 2022', 'quiz-answers', 'Halifax West High School', 'Chemistry 12', 'Ms. Clarke', 'Grade 12', 'Bonding', '2022', 'HarbourFox42', 'approved',
        array['bonding','VSEPR','quiz','answers','Chemistry 12','Ms. Clarke'],
        'Bonding polarity molecular shapes VSEPR intermolecular forces multiple choice short answer.',
        'Scanned past quiz covering bonding, polarity, molecular shapes, and intermolecular forces. Useful for seeing how questions were worded.',
        7, 58, 34
 where not exists (select 1 from public.locker_materials where title = 'Chemistry 12 Bonding Quiz — Fall 2022');
 
-insert into public.locker_materials (title, material_type, school, course, teacher, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
-select 'Biology 11 Cell Unit Assignment', 'assignment-answers', 'Halifax West High School', 'Biology 11', 'Mr. Bennett', 'NorthOwl19', 'approved',
+insert into public.locker_materials (title, material_type, school, course, teacher, grade_level, unit_topic, material_year, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
+select 'Biology 11 Cell Unit Assignment', 'assignment-answers', 'Halifax West High School', 'Biology 11', 'Mr. Bennett', 'Grade 11', 'Cells and organelles', '2021', 'NorthOwl19', 'approved',
        array['cells','organelles','assignment','answers','Biology 11','Mr. Bennett'],
        'Cell organelles membrane transport microscope terms diagrams assignment.',
        'Old assignment page covering organelles, membrane transport, microscope terms, and diagrams from the cell unit.',
        3, 41, 29
 where not exists (select 1 from public.locker_materials where title = 'Biology 11 Cell Unit Assignment');
 
-insert into public.locker_materials (title, material_type, school, course, teacher, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
-select 'Math 11 Functions Quiz — 2021', 'quiz-answers', 'Citadel High School', 'Math 11', 'Ms. Rivera', 'FogHawk77', 'approved',
+insert into public.locker_materials (title, material_type, school, course, teacher, grade_level, unit_topic, material_year, pseudonym, status, tags, ocr_text, preview, pages, upvotes, saves)
+select 'Math 11 Functions Quiz — 2021', 'quiz-answers', 'Citadel High School', 'Math 11', 'Ms. Rivera', 'Grade 11', 'Functions', '2021', 'FogHawk77', 'approved',
        array['functions','quadratics','graphs','answers','Math 11','Ms. Rivera'],
        'Functions transformations graphing domain range quadratics quiz.',
        'Past quiz scan with functions, transformations, graphing, and domain/range questions.',

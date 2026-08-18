@@ -1,6 +1,6 @@
-# Locker — Crowdsourced past-test database
+# Locker — School materials database
 
-Mobile-first web app where students scan old assignments, quizzes, and exams into a school-specific searchable database available to students from that school.
+Mobile-first web app where students scan assignments, worksheets, quizzes, and past exams into a school-specific searchable database available to students from that school for studying.
 
 ## Live data
 
@@ -9,7 +9,8 @@ Locker now uses Supabase for:
 - public material feed
 - submission counts
 - alias/school profiles
-- scan submissions
+- multi-page scan submissions
+- grade, unit/topic, year, teacher, and class metadata
 - reports and votes
 
 Local seed data remains only as a fallback if Supabase env vars are missing or the database is unreachable.
@@ -49,9 +50,23 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - Client-side image OCR via `tesseract.js`
 - GitHub Pages deployment
 
+## Scanner flow
+
+Locker now supports:
+
+- live camera scanning with a mobile frame
+- multiple pages per material
+- photo-library fallback with multiple images
+- client-side OCR via `tesseract.js`
+- editable OCR text per page
+- basic image quality hints for low light / blur
+- auto-filled metadata suggestions for type, class, grade, unit/topic, teacher, year, and title
+
+The upload path is intentionally scan-first: image pages first, then labels unlock.
+
 ## Product Boundary
 
-Locker is a school-specific social experiment / crowdsourced test bank.
+Locker is a school-specific social experiment / crowdsourced school-materials database.
 
 Allowed:
 

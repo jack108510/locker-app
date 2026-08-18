@@ -36,6 +36,7 @@ export function DocumentViewer({ material, onClose }: DocumentViewerProps) {
   const totalPages = Math.max(1, material.pages ?? 1);
   const content = scanLines.slice((page - 1) * 8, page * 8);
   const typeInfo = MATERIAL_TYPES.find((t) => t.value === material.type);
+  const images = material.imageUrls?.length ? material.imageUrls : material.imageUrl ? [material.imageUrl] : [];
 
   return (
     <div
@@ -61,10 +62,10 @@ export function DocumentViewer({ material, onClose }: DocumentViewerProps) {
           </button>
         </div>
 
-        {material.imageUrl && (
+        {images[page - 1] && (
           <div className="mx-4 mt-4 overflow-hidden rounded-2xl border border-[#2a2b45] bg-black">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={material.imageUrl} alt="Submitted scan" className="max-h-64 w-full object-contain" />
+            <img src={images[page - 1]} alt={`Submitted scan page ${page}`} className="max-h-64 w-full object-contain" />
           </div>
         )}
 

@@ -17,6 +17,9 @@ export interface StudyMaterial {
   school: string;
   course: string;
   teacher?: string;
+  grade?: string;
+  unit?: string;
+  year?: string;
   pseudonym: string;
   uploadedAt: string;
   upvotes: number;
@@ -27,6 +30,7 @@ export interface StudyMaterial {
   preview: string;
   ocrText?: string;
   imageUrl?: string;
+  imageUrls?: string[];
   pages?: number;
 }
 
@@ -103,12 +107,15 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     school: "Halifax West High School",
     course: "Chemistry 12",
     teacher: "Ms. Clarke",
+    grade: "Grade 12",
+    unit: "Bonding",
+    year: "2022",
     pseudonym: "HarbourFox42",
     uploadedAt: "2024-01-16",
     upvotes: 58,
     saves: 34,
     status: "approved",
-    tags: ["bonding", "VSEPR", "quiz", "answers"],
+    tags: ["bonding", "VSEPR", "quiz", "answers", "Grade 12", "2022"],
     preview: "Scanned past quiz with student answers covering bonding, polarity, molecular shapes, and intermolecular forces.",
     pages: 7,
   },
@@ -119,12 +126,15 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     school: "Halifax West High School",
     course: "Biology 11",
     teacher: "Mr. Bennett",
+    grade: "Grade 11",
+    unit: "Cells and organelles",
+    year: "2021",
     pseudonym: "NorthOwl19",
     uploadedAt: "2024-01-16",
     upvotes: 41,
     saves: 29,
     status: "approved",
-    tags: ["cells", "organelles", "assignment", "answers"],
+    tags: ["cells", "organelles", "assignment", "answers", "Grade 11", "2021"],
     preview: "Old assignment with answers covering organelles, membrane transport, microscope terms, and diagrams from the cell unit.",
     pages: 3,
   },
@@ -135,12 +145,15 @@ export const APPROVED_MATERIALS: StudyMaterial[] = [
     school: "Citadel High School",
     course: "Math 11",
     teacher: "Ms. Rivera",
+    grade: "Grade 11",
+    unit: "Functions",
+    year: "2021",
     pseudonym: "FogHawk77",
     uploadedAt: "2024-01-15",
     upvotes: 36,
     saves: 22,
     status: "approved",
-    tags: ["functions", "quadratics", "graphs"],
+    tags: ["functions", "quadratics", "graphs", "Grade 11", "2021"],
     preview: "Past quiz scan with functions, transformations, graphing, and domain/range questions.",
     pages: 5,
   },

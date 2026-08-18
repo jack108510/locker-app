@@ -412,7 +412,7 @@ function rankMaterials({
       const fields = {
         title: material.title.toLowerCase(),
         course: material.course.toLowerCase(),
-        tags: material.tags.join(" ").toLowerCase(),
+        tags: [...material.tags, material.grade, material.unit, material.year].filter(Boolean).join(" ").toLowerCase(),
         scan: material.preview.toLowerCase(),
         school: material.school.toLowerCase(),
       };

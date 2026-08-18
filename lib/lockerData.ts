@@ -15,6 +15,9 @@ type DbMaterial = {
   school: string;
   course: string;
   teacher: string | null;
+  grade_level: string | null;
+  unit_topic: string | null;
+  material_year: string | null;
   pseudonym: string;
   created_at: string;
   upvotes: number;
@@ -26,7 +29,10 @@ type DbMaterial = {
   ocr_text: string | null;
   pages: number | null;
   image_url: string | null;
+  image_urls: string[] | null;
 };
+
+const MATERIAL_SELECT = "id,title,material_type,school,course,teacher,grade_level,unit_topic,material_year,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages,image_url,image_urls";
 
 export function dbToMaterial(row: DbMaterial): StudyMaterial {
   return {
@@ -36,6 +42,9 @@ export function dbToMaterial(row: DbMaterial): StudyMaterial {
     school: row.school,
     course: row.course || "General",
     teacher: row.teacher ?? undefined,
+    grade: row.grade_level ?? undefined,
+    unit: row.unit_topic ?? undefined,
+    year: row.material_year ?? undefined,
     pseudonym: row.pseudonym,
     uploadedAt: row.created_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
     upvotes: row.upvotes ?? 0,
@@ -47,6 +56,7 @@ export function dbToMaterial(row: DbMaterial): StudyMaterial {
     ocrText: row.ocr_text ?? undefined,
     pages: row.pages ?? 1,
     imageUrl: row.image_url ?? undefined,
+    imageUrls: row.image_urls ?? (row.image_url ? [row.image_url] : undefined),
   };
 }
 
@@ -54,7 +64,7 @@ export async function loadApprovedMaterials(school?: string): Promise<StudyMater
   if (!supabase) return [];
   let query = supabase
     .from("locker_materials")
-    .select("id,title,material_type,school,course,teacher,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages,image_url")
+    .select(MATERIAL_SELECT)
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(50);
@@ -104,6 +114,9 @@ export async function submitMaterial(input: {
   school: string;
   course: string;
   teacher?: string;
+  grade?: string;
+  unit?: string;
+  year?: string;
   pseudonym: string;
   status: ModerationStatus;
   moderationReason?: string;
@@ -112,6 +125,7 @@ export async function submitMaterial(input: {
   preview: string;
   pages?: number;
   imageUrl?: string;
+  imageUrls?: string[];
 }): Promise<StudyMaterial> {
   if (!supabase) throw new Error("Supabase is not configured");
   const payload = {
@@ -121,6 +135,9 @@ export async function submitMaterial(input: {
     school: input.school,
     course: input.course || "General",
     teacher: input.teacher || null,
+    grade_level: input.grade || null,
+    unit_topic: input.unit || null,
+    material_year: input.year || null,
     pseudonym: input.pseudonym,
     status: input.status,
     moderation_reason: input.moderationReason || null,
@@ -129,12 +146,13 @@ export async function submitMaterial(input: {
     preview: input.preview,
     pages: input.pages ?? 1,
     image_url: input.imageUrl || null,
+    image_urls: input.imageUrls?.length ? input.imageUrls : null,
   };
   if (input.status === "approved") {
     const { data, error } = await supabase
       .from("locker_materials")
       .insert(payload)
-      .select("id,title,material_type,school,course,teacher,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages,image_url")
+      .select(MATERIAL_SELECT)
       .single();
     if (error) throw error;
     return dbToMaterial(data as DbMaterial);
@@ -149,6 +167,9 @@ export async function submitMaterial(input: {
     school: input.school,
     course: input.course || "General",
     teacher: input.teacher,
+    grade: input.grade,
+    unit: input.unit,
+    year: input.year,
     pseudonym: input.pseudonym,
     uploadedAt: new Date().toISOString().slice(0, 10),
     upvotes: 0,
@@ -160,6 +181,7 @@ export async function submitMaterial(input: {
     ocrText: input.scannedText || undefined,
     pages: input.pages ?? 1,
     imageUrl: input.imageUrl,
+    imageUrls: input.imageUrls,
   };
 }
 
@@ -176,6 +198,11 @@ export async function uploadMaterialImage(file: File, school: string) {
   if (error) throw error;
   const { data } = supabase.storage.from("locker-scans").getPublicUrl(path);
   return data.publicUrl;
+}
+
+export async function uploadMaterialImages(files: File[], school: string) {
+  const urls = await Promise.all(files.map((file) => uploadMaterialImage(file, school)));
+  return urls.filter((url): url is string => Boolean(url));
 }
 
 export async function reportMaterial(materialId: string, profileId?: string, reason = "reported") {

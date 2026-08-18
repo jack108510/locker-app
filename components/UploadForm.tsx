@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SCHOOLS, MATERIAL_TYPES, moderateUpload, MaterialType, StudyMaterial } from "@/lib/mockData";
-import { submitMaterial, uploadMaterialImage } from "@/lib/lockerData";
+import { submitMaterial, uploadMaterialImages } from "@/lib/lockerData";
 import { supabaseConfigured } from "@/lib/supabase";
-import { Upload, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2, Camera, Sparkles } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2, Camera, Sparkles, Wand2 } from "lucide-react";
 import { clsx } from "clsx";
 
 interface UploadFormProps {
@@ -16,28 +16,68 @@ interface UploadFormProps {
 }
 
 type SubmitState = "idle" | "reviewing" | "approved" | "pending" | "blocked";
+type PageScanState = "scanning" | "done" | "unsupported" | "error";
+
+type ScanPage = {
+  id: string;
+  file: File;
+  text: string;
+  progress: number;
+  state: PageScanState;
+  quality?: string;
+};
+
+type InferredFields = {
+  title?: string;
+  type?: MaterialType;
+  course?: string;
+  teacher?: string;
+  grade?: string;
+  unit?: string;
+  year?: string;
+};
 
 export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, onQueued }: UploadFormProps) {
   const [type, setType] = useState<MaterialType | "">("");
   const [school, setSchool] = useState(currentSchool ?? "");
   const [course, setCourse] = useState("");
   const [teacher, setTeacher] = useState("");
+  const [grade, setGrade] = useState("");
+  const [unit, setUnit] = useState("");
+  const [year, setYear] = useState("");
   const [title, setTitle] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [scannedText, setScannedText] = useState("");
-  const [scanState, setScanState] = useState<"idle" | "scanning" | "done" | "unsupported" | "error">("idle");
-  const [scanProgress, setScanProgress] = useState(0);
+  const [pages, setPages] = useState<ScanPage[]>([]);
   const [state, setState] = useState<SubmitState>("idle");
   const [moderationResult, setModerationResult] = useState<{ status: string; reason?: string } | null>(null);
   const [submitError, setSubmitError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const qualityCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState("");
   const [capturing, setCapturing] = useState(false);
+  const [suggestions, setSuggestions] = useState<InferredFields>({});
+
+  const scannedText = useMemo(() => {
+    return pages
+      .map((page, index) => page.text.trim() ? `Page ${index + 1}\n${page.text.trim()}` : "")
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+  }, [pages]);
+
+  const scanState = pages.some((p) => p.state === "scanning")
+    ? "scanning"
+    : pages.length === 0
+      ? "idle"
+      : pages.some((p) => p.state === "done")
+        ? "done"
+        : pages.some((p) => p.state === "unsupported")
+          ? "unsupported"
+          : "error";
 
   const schoolOptions = currentSchool && !SCHOOLS.some((s) => s.name === currentSchool)
     ? [{ id: "current-school", name: currentSchool, courses: [] }, ...SCHOOLS]
@@ -45,7 +85,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
 
   const selectedSchool = schoolOptions.find((s) => s.name === school);
   const courses = selectedSchool?.courses ?? [];
-  const canSubmit = type && school && title && file && scanState !== "scanning";
+  const canSubmit = type && school && title && pages.length > 0 && scanState !== "scanning";
 
   const stopScanner = () => {
     document.body.classList.remove("locker-scanning");
@@ -108,48 +148,65 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
         setCapturing(false);
         return;
       }
-      const liveFile = new File([blob], `locker-scan-${Date.now()}.jpg`, { type: "image/jpeg" });
-      setFile(liveFile);
-      stopScanner();
-      void scanFile(liveFile).finally(() => setCapturing(false));
+      const liveFile = new File([blob], `locker-page-${pages.length + 1}-${Date.now()}.jpg`, { type: "image/jpeg" });
+      void addPage(liveFile).finally(() => setCapturing(false));
     }, "image/jpeg", 0.92);
   };
 
-  const scanFile = async (selectedFile: File) => {
-    setScannedText("");
-    setScanProgress(0);
+  const addPage = async (selectedFile: File) => {
+    const id = crypto.randomUUID();
+    const initialState: PageScanState = selectedFile.type.startsWith("image/") ? "scanning" : "unsupported";
+    setPages((prev) => [...prev, { id, file: selectedFile, text: "", progress: 0, state: initialState }]);
 
-    if (!selectedFile.type.startsWith("image/")) {
-      setScanState("unsupported");
-      return;
-    }
+    if (!selectedFile.type.startsWith("image/")) return;
 
-    setScanState("scanning");
+    const quality = await estimateImageQuality(selectedFile, qualityCanvasRef.current).catch(() => undefined);
+    setPages((prev) => prev.map((p) => p.id === id ? { ...p, quality } : p));
+
     try {
       const { recognize } = await import("tesseract.js");
       const result = await recognize(selectedFile, "eng", {
         logger: (m) => {
           if (m.status === "recognizing text" && typeof m.progress === "number") {
-            setScanProgress(Math.round(m.progress * 100));
+            const progress = Math.round(m.progress * 100);
+            setPages((prev) => prev.map((p) => p.id === id ? { ...p, progress } : p));
           }
         },
       });
 
-      const text = result.data.text.trim();
-      setScannedText(text);
-      setScanState(text ? "done" : "error");
-      setScanProgress(100);
+      const text = cleanOcrText(result.data.text);
+      setPages((prev) => prev.map((p) => p.id === id ? { ...p, text, state: text ? "done" : "error", progress: 100 } : p));
+      const combined = [...pages.map((p) => p.text), text].filter(Boolean).join("\n\n");
+      applySuggestions(inferFields(`${selectedFile.name}\n${combined}`, courses));
     } catch {
-      setScanState("error");
+      setPages((prev) => prev.map((p) => p.id === id ? { ...p, state: "error", progress: 100 } : p));
     }
   };
 
+  const applySuggestions = (next: InferredFields) => {
+    if (Object.keys(next).length === 0) return;
+    setSuggestions((prev) => ({ ...prev, ...next }));
+    if (next.type) setType((existing) => existing || next.type || "");
+    if (next.course) setCourse((existing) => existing || next.course || "");
+    if (next.teacher) setTeacher((existing) => existing || next.teacher || "");
+    if (next.grade) setGrade((existing) => existing || next.grade || "");
+    if (next.unit) setUnit((existing) => existing || next.unit || "");
+    if (next.year) setYear((existing) => existing || next.year || "");
+    if (next.title) setTitle((existing) => existing || next.title || "");
+  };
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) {
-      setFile(f);
-      void scanFile(f);
-    }
+    const selected = Array.from(e.target.files ?? []);
+    selected.forEach((f) => void addPage(f));
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const updatePageText = (id: string, text: string) => {
+    setPages((prev) => prev.map((p) => p.id === id ? { ...p, text: cleanOcrText(text), state: text.trim() ? "done" : p.state } : p));
+  };
+
+  const removePage = (id: string) => {
+    setPages((prev) => prev.filter((p) => p.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -157,10 +214,14 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
     if (!canSubmit) return;
 
     setState("reviewing");
-    await new Promise((r) => setTimeout(r, 1200));
+    await new Promise((r) => setTimeout(r, 900));
 
     const result = moderateUpload(title, type as MaterialType, scannedText);
     setModerationResult(result);
+
+    const tags = [course, teacher, grade, unit, year, type as string]
+      .filter(Boolean)
+      .flatMap((v) => String(v).split(/[,/]/).map((part) => part.trim()).filter(Boolean));
 
     const localMaterial: StudyMaterial = {
       id: `u-${Date.now()}`,
@@ -169,23 +230,24 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
       school,
       course: course || "General",
       teacher: teacher || undefined,
+      grade: grade || undefined,
+      unit: unit || undefined,
+      year: year || undefined,
       pseudonym,
       uploadedAt: new Date().toISOString().split("T")[0],
       upvotes: 0,
       saves: 0,
       status: result.status,
-      tags: [course, teacher, type as string].filter(Boolean),
-      preview: scannedText
-        ? scannedText.slice(0, 220)
-        : "Submitted past material — pending or approved after moderation review.",
+      tags,
+      preview: buildPreview(scannedText),
       ocrText: scannedText || undefined,
-      pages: 1,
+      pages: pages.length,
     };
 
     let newMaterial = localMaterial;
     if (supabaseConfigured) {
       try {
-        const imageUrl = file ? await uploadMaterialImage(file, school) : undefined;
+        const imageUrls = await uploadMaterialImages(pages.map((p) => p.file), school);
         newMaterial = await submitMaterial({
           profileId,
           title,
@@ -193,14 +255,18 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
           school,
           course: course || "General",
           teacher: teacher || undefined,
+          grade: grade || undefined,
+          unit: unit || undefined,
+          year: year || undefined,
           pseudonym,
           status: result.status,
           moderationReason: result.reason,
-          tags: localMaterial.tags,
+          tags,
           scannedText,
           preview: localMaterial.preview,
-          pages: 1,
-          imageUrl,
+          pages: pages.length,
+          imageUrl: imageUrls[0],
+          imageUrls,
         });
         setSubmitError("");
       } catch (error) {
@@ -221,8 +287,8 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
   };
 
   const reset = () => {
-    setType(""); setSchool(""); setCourse(""); setTeacher("");
-    setTitle(""); setFile(null); setScannedText(""); setScanState("idle"); setScanProgress(0); setState("idle"); setModerationResult(null); setSubmitError("");
+    setType(""); setSchool(currentSchool ?? ""); setCourse(""); setTeacher(""); setGrade(""); setUnit(""); setYear("");
+    setTitle(""); setPages([]); setState("idle"); setModerationResult(null); setSubmitError(""); setSuggestions({});
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -230,7 +296,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4 animate-slide-up">
         <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
-        <p className="text-slate-400 text-sm">Checking the drop before it goes public…</p>
+        <p className="text-slate-400 text-sm">Checking the material before it joins the archive…</p>
       </div>
     );
   }
@@ -239,8 +305,8 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
     return (
       <div className="flex flex-col items-center text-center py-12 gap-4 animate-slide-up px-4">
         <CheckCircle size={52} className="text-emerald-400" strokeWidth={1.5} />
-        <h3 className="text-xl font-bold text-white">Added to the public database</h3>
-        <p className="text-slate-400 text-sm max-w-xs">{submitError || `Your past material passed review and is searchable by students from ${school}.`}</p>
+        <h3 className="text-xl font-bold text-white">Added to the school archive</h3>
+        <p className="text-slate-400 text-sm max-w-xs">{submitError || `Your material is searchable by students from ${school}.`}</p>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all">
           Scan another
         </button>
@@ -252,9 +318,9 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
     return (
       <div className="flex flex-col items-center text-center py-12 gap-4 animate-slide-up px-4">
         <AlertCircle size={52} className="text-amber-400" strokeWidth={1.5} />
-        <h3 className="text-xl font-bold text-white">In the queue</h3>
+        <h3 className="text-xl font-bold text-white">In the review queue</h3>
         <p className="text-slate-400 text-sm max-w-xs">
-          {submitError || moderationResult?.reason || "Your scan is under review. It goes into the shared database once a moderator clears it — usually under 24 hours."}
+          {submitError || moderationResult?.reason || "Your scan is under review. It goes into the school archive once a moderator clears it."}
         </p>
         <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-[#1a1b2e] border border-[#2a2b45] hover:border-indigo-500/40 text-white font-semibold text-sm transition-all">
           Scan another
@@ -267,15 +333,15 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
     return (
       <div className="flex flex-col items-center text-center py-12 gap-4 animate-slide-up px-4">
         <XCircle size={52} className="text-red-400" strokeWidth={1.5} />
-        <h3 className="text-xl font-bold text-white">Drop blocked</h3>
+        <h3 className="text-xl font-bold text-white">Material blocked</h3>
         <p className="text-slate-400 text-sm max-w-xs">{moderationResult?.reason}</p>
         <div className="bg-[#1a1b2e] border border-red-500/20 rounded-xl p-4 text-left max-w-xs w-full mt-2">
           <p className="text-xs text-red-400 font-semibold mb-1">Not allowed on Locker:</p>
           <ul className="text-xs text-slate-500 space-y-1 list-disc list-inside">
             <li>Current / still-active test material</li>
-            <li>Answer keys or teacher editions</li>
+            <li>Official teacher-only answer keys</li>
             <li>Student names, grades, or personal info</li>
-            <li>Teacher-only copies or answer keys</li>
+            <li>Teacher-only copies</li>
             <li>Photos containing personal student info</li>
           </ul>
         </div>
@@ -289,8 +355,8 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
   return (
     <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
       <div>
-        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Scan old material</h2>
-        <p className="text-sm text-slate-500">Scan old material from your school. Include the answers if they are on the page.</p>
+        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Scan school material</h2>
+        <p className="text-sm text-slate-500">Add assignments, quizzes, worksheets, or past exams to your school&apos;s searchable study archive.</p>
       </div>
 
       <button
@@ -302,10 +368,10 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
         <div className="relative flex items-center justify-between gap-5">
           <div>
             <div className="mb-3 inline-flex rounded-full bg-cyan-300/10 px-3 py-1 text-[11px] font-medium text-cyan-200">
-              public database drop
+              school archive scan
             </div>
-            <p className="text-lg font-medium text-white">Scan assignment / quiz / exam with answers</p>
-            <p className="mt-1 text-sm leading-6 text-slate-400">Capture a page, pull text, add it to your school&apos;s database.</p>
+            <p className="text-lg font-medium text-white">Scan one or more pages</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">Capture assignments, quizzes, worksheets, or past exams. Locker pulls searchable text.</p>
           </div>
           <div className="rounded-full bg-white text-black p-4">
             <Camera size={20} />
@@ -316,246 +382,326 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
       {scannerOpen && (
         <div className="fixed inset-0 z-[9999] bg-black/95 p-5">
           <div className="mx-auto flex h-full max-w-md flex-col">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">Hold page inside frame</p>
-              <p className="text-xs text-slate-500">Capture when the old page is sharp.</p>
-            </div>
-            <button type="button" onClick={stopScanner} className="rounded-full bg-white/10 p-2 text-white">
-              <X size={18} />
-            </button>
-          </div>
-
-          <div className="relative flex-1 overflow-hidden rounded-[2rem] border border-white/10 bg-[#08090d]">
-            <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
-            <canvas ref={canvasRef} className="hidden" />
-            <div className="absolute inset-6 rounded-[1.5rem] border border-cyan-200/70 shadow-[0_0_0_999px_rgba(0,0,0,0.35)]" />
-            <div className="absolute left-8 right-8 top-1/2 h-0.5 bg-cyan-200 shadow-[0_0_24px_rgba(103,232,249,0.95)] animate-pulse" />
-            <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/10 bg-black/50 p-3 backdrop-blur">
-              <div className="flex items-center gap-2 text-xs text-cyan-100">
-                <Sparkles size={14} /> Detecting questions + printed text
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-white">Hold page inside frame</p>
+                <p className="text-xs text-slate-500">Capture each page. Tap Done when finished.</p>
               </div>
+              <button type="button" onClick={stopScanner} className="rounded-full bg-white/10 p-2 text-white">
+                <X size={18} />
+              </button>
             </div>
-            {cameraError && (
-              <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-                <div className="rounded-3xl border border-white/10 bg-black/70 p-5">
-                  <p className="text-sm text-white">{cameraError}</p>
-                  <button type="button" onClick={() => fileRef.current?.click()} className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-medium text-black">
-                    Pick photo
-                  </button>
+
+            <div className="relative flex-1 overflow-hidden rounded-[2rem] border border-white/10 bg-[#08090d]">
+              <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+              <canvas ref={canvasRef} className="hidden" />
+              <canvas ref={qualityCanvasRef} className="hidden" />
+              <div className="absolute inset-6 rounded-[1.5rem] border border-cyan-200/70 shadow-[0_0_0_999px_rgba(0,0,0,0.35)]" />
+              <div className="absolute left-8 right-8 top-1/2 h-0.5 bg-cyan-200 shadow-[0_0_24px_rgba(103,232,249,0.95)] animate-pulse" />
+              <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/10 bg-black/50 p-3 backdrop-blur">
+                <div className="flex items-center gap-2 text-xs text-cyan-100">
+                  <Sparkles size={14} /> {pages.length} page{pages.length === 1 ? "" : "s"} captured · detecting text
                 </div>
               </div>
-            )}
-          </div>
+              {cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
+                  <div className="rounded-3xl border border-white/10 bg-black/70 p-5">
+                    <p className="text-sm text-white">{cameraError}</p>
+                    <button type="button" onClick={() => fileRef.current?.click()} className="mt-4 rounded-full bg-white px-5 py-3 text-sm font-medium text-black">
+                      Pick photos
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
-          <button
-            type="button"
-            onClick={captureLivePage}
-            disabled={!cameraReady || capturing}
-            className="mt-5 rounded-full bg-white py-4 text-sm font-semibold text-black disabled:opacity-40"
-          >
-            {capturing ? "Capturing…" : "Capture page"}
-          </button>
+            <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
+              <button
+                type="button"
+                onClick={captureLivePage}
+                disabled={!cameraReady || capturing}
+                className="rounded-full bg-white py-4 text-sm font-semibold text-black disabled:opacity-40"
+              >
+                {capturing ? "Capturing…" : `Capture page ${pages.length + 1}`}
+              </button>
+              <button type="button" onClick={stopScanner} className="rounded-full border border-white/15 px-5 py-4 text-sm font-semibold text-white">
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Photo */}
       <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">Old material</label>
+        <label className="block text-xs font-semibold text-slate-500 mb-2">School material pages</label>
         <div
           onClick={() => fileRef.current?.click()}
           className={clsx(
             "rounded-[1.75rem] border border-dashed p-7 text-center cursor-pointer transition-all",
-            file
+            pages.length
               ? "border-white/20 bg-white/[0.04]"
               : "border-white/10 bg-white/[0.025]"
           )}
         >
-          {file ? (
-            <div className="flex items-center justify-center gap-3">
-              <ScanText size={20} className="text-cyan-300" />
-              <div className="text-left">
-                <p className="text-sm text-white font-medium">{file.name}</p>
-                <p className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFile(null);
-                  setScannedText("");
-                  setScanState("idle");
-                  setScanProgress(0);
-                  if (fileRef.current) fileRef.current.value = "";
-                }}
-                className="ml-2 text-slate-500 hover:text-white"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          ) : (
-            <>
-              <Upload size={22} className="text-slate-600 mx-auto mb-2" />
-              <p className="text-sm text-slate-400 font-medium">Or pick a photo of old material</p>
-              <p className="text-xs text-slate-600 mt-1">Assignments, quizzes, exams, answers</p>
-            </>
-          )}
+          <Upload size={22} className="text-slate-600 mx-auto mb-2" />
+          <p className="text-sm text-slate-400 font-medium">{pages.length ? "Add more photos" : "Or pick photos of old material"}</p>
+          <p className="text-xs text-slate-600 mt-1">Assignments, quizzes, worksheets, past exams</p>
         </div>
-        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" onChange={handleFile} className="hidden" />
+        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" multiple onChange={handleFile} className="hidden" />
 
-        {file && (
-          <div className="mt-3 rounded-2xl border border-[#2a2b45] bg-[#101522] p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
+        {pages.length > 0 && (
+          <div className="mt-3 space-y-3 rounded-2xl border border-[#2a2b45] bg-[#101522] p-4">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 {scanState === "scanning" ? <Loader2 size={16} className="animate-spin text-cyan-300" /> : <ScanText size={16} className="text-cyan-300" />}
                 <span className="text-sm font-semibold text-white">Database scanner</span>
               </div>
               <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-cyan-200">
-                OCR
+                {pages.length} page{pages.length === 1 ? "" : "s"}
               </span>
             </div>
 
-            {scanState === "scanning" && (
-              <div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#1a1b2e]">
-                  <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all" style={{ width: `${Math.max(scanProgress, 8)}%` }} />
+            {pages.map((page, index) => (
+              <div key={page.id} className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-white">Page {index + 1}: {page.file.name}</p>
+                    <p className="text-[11px] text-slate-600">{page.quality || "Checking image quality…"}</p>
+                  </div>
+                  <button type="button" onClick={() => removePage(page.id)} className="rounded-full bg-white/5 p-1.5 text-slate-500 hover:text-white">
+                    <X size={13} />
+                  </button>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">Pulling text off the page… {scanProgress}%</p>
+
+                {page.state === "scanning" && (
+                  <div>
+                    <div className="h-2 overflow-hidden rounded-full bg-[#1a1b2e]">
+                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all" style={{ width: `${Math.max(page.progress, 8)}%` }} />
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">Pulling text off this page… {page.progress}%</p>
+                  </div>
+                )}
+
+                {page.state === "done" && (
+                  <textarea
+                    value={page.text}
+                    onChange={(e) => updatePageText(page.id, e.target.value)}
+                    rows={4}
+                    className="w-full resize-none rounded-xl border border-[#2a2b45] bg-[#0b0d16] px-3 py-2 text-xs leading-relaxed text-slate-300 outline-none focus:border-cyan-400/50"
+                  />
+                )}
+
+                {page.state === "unsupported" && <p className="text-xs leading-relaxed text-amber-300/80">Locker only takes photos from the camera or photo library.</p>}
+                {page.state === "error" && <p className="text-xs leading-relaxed text-red-300/80">Couldn’t read text from this image. You can still submit it for review.</p>}
               </div>
-            )}
-
-            {scanState === "done" && (
-              <div>
-                <p className="mb-2 text-xs text-emerald-300">Text pulled from the page. Locker uses it for search + moderation before making it public.</p>
-                <textarea
-                  value={scannedText}
-                  onChange={(e) => setScannedText(e.target.value)}
-                  rows={5}
-                  className="w-full resize-none rounded-xl border border-[#2a2b45] bg-[#0b0d16] px-3 py-2 text-xs leading-relaxed text-slate-300 outline-none focus:border-cyan-400/50"
-                />
-              </div>
-            )}
-
-            {scanState === "unsupported" && (
-              <p className="text-xs leading-relaxed text-amber-300/80">
-                Locker only takes photos of old school material from the camera or photo library.
-              </p>
-            )}
-
-            {scanState === "error" && (
-              <p className="text-xs leading-relaxed text-red-300/80">
-                Couldn’t read text from this image. You can still submit the old material for review.
-              </p>
-            )}
+            ))}
           </div>
         )}
       </div>
 
-      {file ? (
+      {pages.length ? (
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-xs font-medium text-cyan-200">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-300/10 text-[11px]">2</span>
-            Label the drop
+            Label the material
+            {Object.keys(suggestions).length > 0 && <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-slate-500"><Wand2 size={12} /> auto-filled</span>}
           </div>
 
-      {/* Type */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">Type</label>
-        <div className="-mx-5 overflow-x-auto px-5 no-scrollbar">
-          <div className="flex gap-2 whitespace-nowrap">
-          {MATERIAL_TYPES.map((t) => (
-            <button
-              type="button"
-              key={t.value}
-              onClick={() => setType(t.value)}
-              className={clsx(
-                "flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-medium transition-all",
-                type === t.value
-                  ? "bg-white text-black"
-                  : "border border-white/10 bg-white/[0.03] text-slate-400"
-              )}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-2">Type</label>
+            <div className="-mx-5 overflow-x-auto px-5 no-scrollbar">
+              <div className="flex gap-2 whitespace-nowrap">
+                {MATERIAL_TYPES.map((t) => (
+                  <button
+                    type="button"
+                    key={t.value}
+                    onClick={() => setType(t.value)}
+                    className={clsx(
+                      "flex items-center gap-2 rounded-full px-4 py-2.5 text-xs font-medium transition-all",
+                      type === t.value
+                        ? "bg-white text-black"
+                        : "border border-white/10 bg-white/[0.03] text-slate-400"
+                    )}
+                  >
+                    <span className="text-base">{t.emoji}</span>
+                    <span className="text-xs leading-tight">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-xs text-slate-600">School</p>
+            <p className="mt-1 text-sm font-medium text-white">{school || currentSchool || "Nearby school"}</p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-2">Class <span className="font-normal text-slate-600">optional</span></label>
+            <select
+              value={course}
+              onChange={(e) => setCourse(e.target.value)}
+              disabled={!school}
+              className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none appearance-none disabled:opacity-40"
             >
-              <span className="text-base">{t.emoji}</span>
-              <span className="text-xs leading-tight">{t.label}</span>
-            </button>
-          ))}
+              <option value="">Select course…</option>
+              {courses.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
-        </div>
-      </div>
 
-      {/* School */}
-      <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-        <p className="text-xs text-slate-600">School</p>
-        <p className="mt-1 text-sm font-medium text-white">{school || currentSchool || "Nearby school"}</p>
-      </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Grade" value={grade} onChange={setGrade} placeholder="Grade 11" />
+            <Field label="Year" value={year} onChange={setYear} placeholder="2022" />
+          </div>
+          <Field label="Unit / topic" value={unit} onChange={setUnit} placeholder="Bonding, functions, Cold War…" />
+          <Field label="Teacher" value={teacher} onChange={setTeacher} placeholder="e.g. Ms. Clarke" optional />
+          <Field label="Title" value={title} onChange={setTitle} placeholder="e.g. Grade 11 Chem Bonding Quiz 2022" />
 
-      {/* Course */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">
-          Class <span className="font-normal text-slate-600">optional</span>
-        </label>
-        <select
-          value={course}
-          onChange={(e) => setCourse(e.target.value)}
-          disabled={!school}
-          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none appearance-none disabled:opacity-40"
-        >
-          <option value="">Select course…</option>
-          {courses.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
+          <div className="flex flex-wrap gap-1.5">
+            {course && <Pill>Class: {course}</Pill>}
+            {grade && <Pill>{grade}</Pill>}
+            {unit && <Pill>{unit}</Pill>}
+            {year && <Pill>{year}</Pill>}
+            {teacher && <Pill>Teacher: {teacher}</Pill>}
+          </div>
 
-      {/* Teacher */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">Teacher <span className="font-normal text-slate-600">optional</span></label>
-        <input
-          type="text"
-          placeholder="e.g. Ms. Clarke"
-          value={teacher}
-          onChange={(e) => setTeacher(e.target.value)}
-          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
-        />
-      </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-slate-500">
+            Public to your school after review. Past assignments/quizzes/exams are allowed for studying; active tests, teacher-only keys, and personal info stay blocked.
+          </div>
 
-      {/* Title */}
-      <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">Title</label>
-        <input
-          type="text"
-          placeholder="e.g. AP Chem Unit 4 Quiz 2022"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
-        />
-      </div>
-
-      {type === "assignment" && (
-        <div className="flex flex-wrap gap-1.5">
-          {course && <span className="rounded-full bg-cyan-300/10 px-3 py-1.5 text-[11px] font-medium text-cyan-100">Class: {course}</span>}
-          {teacher && <span className="rounded-full bg-indigo-300/10 px-3 py-1.5 text-[11px] font-medium text-indigo-100">Teacher: {teacher}</span>}
-        </div>
-      )}
-
-
-      {/* Review notice */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-slate-500">
-        Public to your school after review. Old assignments/quizzes/exams with answers are allowed; current tests, teacher-only keys, and personal info stay blocked.
-      </div>
-
-      <button
-        type="submit"
-        disabled={!canSubmit}
-        className="w-full rounded-full bg-white py-4 text-sm font-semibold text-black transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30 flex items-center justify-center gap-2"
-      >
-        <Upload size={16} /> Add to public database
-      </button>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="w-full rounded-full bg-white py-4 text-sm font-semibold text-black transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-30 flex items-center justify-center gap-2"
+          >
+            <Upload size={16} /> Add to school archive
+          </button>
         </div>
       ) : (
         <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 text-sm leading-6 text-slate-500">
-          Scan a page or pick a photo first. Manual details unlock after Locker has the image.
+          Scan or pick at least one page first. Labels unlock after Locker has the image.
         </div>
       )}
     </form>
   );
+}
+
+function Field({ label, value, onChange, placeholder, optional }: { label: string; value: string; onChange: (v: string) => void; placeholder: string; optional?: boolean }) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-slate-500 mb-2">{label} {optional && <span className="font-normal text-slate-600">optional</span>}</label>
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-full border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none placeholder:text-slate-600"
+      />
+    </div>
+  );
+}
+
+function Pill({ children }: { children: React.ReactNode }) {
+  return <span className="rounded-full bg-cyan-300/10 px-3 py-1.5 text-[11px] font-medium text-cyan-100">{children}</span>;
+}
+
+function cleanOcrText(text: string) {
+  return text
+    .replace(/\r/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .trim();
+}
+
+function buildPreview(text: string) {
+  const cleaned = cleanOcrText(text).replace(/Page \d+\n/g, "").replace(/\s+/g, " ").trim();
+  return cleaned ? cleaned.slice(0, 240) : "Submitted school material — pending or approved after moderation review.";
+}
+
+function inferFields(text: string, courses: string[]): InferredFields {
+  const lower = text.toLowerCase();
+  const foundCourse = courses.find((course) => lower.includes(course.toLowerCase())) || courses.find((course) => {
+    const firstWord = course.toLowerCase().split(/\s+/)[0];
+    return firstWord.length > 3 && lower.includes(firstWord);
+  });
+
+  const year = text.match(/\b(20\d{2}|19\d{2})\b/)?.[1];
+  const gradeMatch = text.match(/\b(?:grade|gr\.?|class)\s*(9|10|11|12)\b/i) || text.match(/\b(9|10|11|12)(?:th)?\s*grade\b/i);
+  const unitMatch = text.match(/\b(?:unit|chapter)\s*([0-9]+\s*[:\-]?\s*[A-Za-z][A-Za-z\s]{2,32})/i);
+  const teacherMatch = text.match(/\b(?:mr\.?|mrs\.?|ms\.?|miss|dr\.?)\s+[A-Z][a-zA-Z]{2,}/);
+
+  const hasAnswers = /\b(answer|answers|solution|solutions|worked out|filled)\b/i.test(text);
+  let inferredType: MaterialType | undefined;
+  if (/\bexam|final|midterm\b/i.test(text)) inferredType = hasAnswers ? "exam-answers" : "exam";
+  else if (/\bquiz\b/i.test(text)) inferredType = hasAnswers ? "quiz-answers" : "quiz";
+  else if (/\bworksheet\b/i.test(text)) inferredType = hasAnswers ? "worksheet-answers" : "worksheet";
+  else if (/\bassignment|homework\b/i.test(text)) inferredType = hasAnswers ? "assignment-answers" : "assignment";
+
+  const titleParts = [
+    gradeMatch ? `Grade ${gradeMatch[1]}` : undefined,
+    foundCourse,
+    unitMatch?.[1]?.replace(/\s+/g, " ").trim(),
+    inferredType ? MATERIAL_TYPES.find((t) => t.value === inferredType)?.label.replace(" + Answers", "") : "Material",
+    year,
+  ].filter(Boolean);
+
+  return {
+    title: titleParts.length >= 2 ? titleParts.join(" — ") : undefined,
+    type: inferredType,
+    course: foundCourse,
+    teacher: teacherMatch?.[0],
+    grade: gradeMatch ? `Grade ${gradeMatch[1]}` : undefined,
+    unit: unitMatch?.[1]?.replace(/\s+/g, " ").trim(),
+    year,
+  };
+}
+
+function estimateImageQuality(file: File, canvas: HTMLCanvasElement | null): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!canvas) {
+      resolve("Image accepted");
+      return;
+    }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      try {
+        const w = Math.min(320, img.width);
+        const h = Math.max(1, Math.round((img.height / img.width) * w));
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("no canvas");
+        ctx.drawImage(img, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h).data;
+        let sum = 0;
+        let contrast = 0;
+        let prev = 0;
+        for (let i = 0; i < data.length; i += 16) {
+          const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          sum += lum;
+          contrast += Math.abs(lum - prev);
+          prev = lum;
+        }
+        const samples = Math.max(1, data.length / 16);
+        const brightness = sum / samples;
+        const edgeScore = contrast / samples;
+        URL.revokeObjectURL(url);
+        if (brightness < 45) resolve("Low light — retake if text looks hard to read");
+        else if (edgeScore < 9) resolve("May be blurry — retake if OCR looks wrong");
+        else resolve("Looks readable");
+      } catch (error) {
+        URL.revokeObjectURL(url);
+        reject(error);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("image failed"));
+    };
+    img.src = url;
+  });
 }

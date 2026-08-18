@@ -66,6 +66,9 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
       <div className="mb-4 flex flex-wrap gap-1.5">
         <Tag>{material.course}</Tag>
         {material.teacher && <Tag>{material.teacher}</Tag>}
+        {material.grade && <Tag>{material.grade}</Tag>}
+        {material.unit && <Tag>{material.unit}</Tag>}
+        {material.year && <Tag>{material.year}</Tag>}
         {material.type === "assignment" && <Tag>assignment</Tag>}
       </div>
 
