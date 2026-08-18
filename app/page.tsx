@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Logo } from "@/components/Logo";
 import { BottomNav, NavTab } from "@/components/BottomNav";
 import { OnboardingModal } from "@/components/OnboardingModal";
@@ -141,6 +141,10 @@ export default function Home() {
 
   const hasSearch = searchQuery.trim().length > 0;
   const totalSubmitted = communityStats.submitted + pendingQueue.length;
+  const archivePageCount = Math.max(
+    totalSubmitted,
+    approvedFeed.reduce((sum, material) => sum + (material.pages ?? 1), 0) + pendingQueue.reduce((sum, material) => sum + (material.pages ?? 1), 0)
+  );
 
   return (
     <>
@@ -184,11 +188,7 @@ export default function Home() {
                   <h1 className="mt-2 text-4xl font-semibold leading-[0.95] tracking-[-0.075em] text-white">Search the archive.</h1>
                   <p className="mt-3 text-sm leading-6 text-white/48">Assignments, quizzes, worksheets, and past exams — searchable by class, teacher, unit, year, and text from the page.</p>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <MiniStat value={totalSubmitted.toLocaleString()} label="submitted" />
-                  <MiniStat value={communityStats.approved.toLocaleString()} label="approved" />
-                  <MiniStat value={communityStats.schools.toString()} label="schools" />
-                </div>
+                <ArchiveGrowthGraphic count={archivePageCount} school={mySchool.replace(" High School", "") || "your school"} />
               </div>
               <div className="flex items-center justify-between rounded-full border border-white/10 bg-white/[0.025] px-3 py-2 text-[11px] text-slate-500">
                 <span>{dataStatus === "live" ? "Live database" : dataStatus === "loading" ? "Connecting to database…" : "Offline seed mode"}</span>
@@ -261,11 +261,71 @@ export default function Home() {
   );
 }
 
-function MiniStat({ value, label }: { value: string; label: string }) {
+function ArchiveGrowthGraphic({ count, school, compact = false }: { count: number; school: string; compact?: boolean }) {
+  const [shown, setShown] = useState(0);
+  const [pulse, setPulse] = useState(false);
+  const lastCount = useRef(count);
+
+  useEffect(() => {
+    const start = Math.max(0, count - 38);
+    const end = count;
+    const started = performance.now();
+    const duration = compact ? 900 : 1250;
+    let frame = 0;
+
+    if (count > lastCount.current) {
+      setPulse(true);
+      window.setTimeout(() => setPulse(false), 1400);
+    }
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - started) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setShown(Math.round(start + (end - start) * eased));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    lastCount.current = count;
+    return () => cancelAnimationFrame(frame);
+  }, [count, compact]);
+
   return (
-    <div className="rounded-3xl bg-[#f5f5f7] px-3 py-4 text-[#1d1d1f]">
-      <p className="text-xl font-semibold tracking-[-0.055em]">{value}</p>
-      <p className="text-[10px] uppercase tracking-[0.16em] text-black/42">{label}</p>
+    <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#f5f5f7] p-4 text-[#1d1d1f] shadow-2xl shadow-black/30">
+      <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-[#0071e3]/20 blur-2xl" />
+      <div className="relative flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/38">Archive growing</p>
+          <div className="mt-1 flex items-end gap-2">
+            <p className="text-5xl font-semibold leading-none tracking-[-0.085em] text-black tabular-nums">{shown.toLocaleString()}</p>
+            <p className="pb-1 text-xs font-medium uppercase tracking-[0.14em] text-black/42">pages</p>
+          </div>
+          <p className="mt-2 text-sm leading-5 text-black/55">Every scan adds another searchable page to {school}&apos;s archive.</p>
+        </div>
+        <div className="relative h-28 w-28 shrink-0">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-2xl border border-black/10 bg-white shadow-[0_14px_35px_rgba(0,0,0,0.16)]"
+              style={{
+                inset: `${18 - i * 2}px ${18 + i * 4}px ${8 + i * 4}px ${12 - i}px`,
+                transform: `rotate(${(i - 3) * 4}deg) translateY(${i % 2 ? -2 : 2}px)`,
+                opacity: 0.42 + i * 0.08,
+              }}
+            >
+              <div className="mx-3 mt-3 h-1.5 rounded-full bg-black/18" />
+              <div className="mx-3 mt-2 h-1.5 w-3/5 rounded-full bg-black/10" />
+              <div className="mx-3 mt-5 h-8 rounded-xl bg-[#0071e3]/10" />
+            </div>
+          ))}
+          <div className="absolute bottom-1 right-1 flex h-10 w-10 items-center justify-center rounded-full bg-[#0071e3] text-white shadow-[0_10px_28px_rgba(0,113,227,0.45)]">
+            <ScanText size={18} />
+          </div>
+        </div>
+      </div>
+      <div className="relative mt-4 h-2 overflow-hidden rounded-full bg-black/10">
+        <div className="h-full rounded-full bg-[#0071e3] transition-all duration-700" style={{ width: `${Math.min(92, 18 + (shown % 100))}%` }} />
+      </div>
+      {pulse && <div className="absolute right-5 top-5 rounded-full bg-[#0071e3] px-3 py-1 text-xs font-semibold text-white">+1 indexed</div>}
     </div>
   );
 }
@@ -503,11 +563,7 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <HeroTile value="1,284" label="materials" />
-            <HeroTile value="42" label="schools" />
-            <HeroTile value="OCR" label="searchable" />
-          </div>
+          <ArchiveGrowthGraphic count={1284} school="your school" compact />
 
           <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.035] p-4">
             <div className="mb-4 flex items-center justify-between">
@@ -535,15 +591,6 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
           </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-function HeroTile({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-3xl bg-[#f5f5f7] px-3 py-4 text-center text-[#1d1d1f]">
-      <p className="text-xl font-semibold tracking-[-0.05em]">{value}</p>
-      <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-black/42">{label}</p>
     </div>
   );
 }
