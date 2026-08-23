@@ -1,0 +1,2 @@
+-- Placeholder for remote migration history already applied before this local repo started tracking Supabase migrations.
+-- Keep this file so `supabase db push` can compare local and remote migration versions safely.

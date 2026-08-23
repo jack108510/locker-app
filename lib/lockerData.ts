@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { COMMUNITY_STATS, StudyMaterial, MaterialType, ModerationStatus } from "@/lib/mockData";
+import { buildLockerMaterialPayload, LockerExtractionStatus, LockerOcrQuality, LockerOcrSource } from "@/lib/lockerPayload";
 
 export type LockerProfile = {
   id: string;
@@ -30,9 +31,16 @@ type DbMaterial = {
   pages: number | null;
   image_url: string | null;
   image_urls: string[] | null;
+  raw_ocr_text: string | null;
+  ocr_source: LockerOcrSource | null;
+  ocr_quality: LockerOcrQuality | null;
+  ocr_confidence: number | null;
+  ai_review: Record<string, unknown> | null;
+  vision_text: string | null;
+  extraction_status: LockerExtractionStatus | null;
 };
 
-const MATERIAL_SELECT = "id,title,material_type,school,course,teacher,grade_level,unit_topic,material_year,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages,image_url,image_urls";
+const MATERIAL_SELECT = "id,title,material_type,school,course,teacher,grade_level,unit_topic,material_year,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages,image_url,image_urls,raw_ocr_text,ocr_source,ocr_quality,ocr_confidence,ai_review,vision_text,extraction_status";
 
 export function dbToMaterial(row: DbMaterial): StudyMaterial {
   return {
@@ -126,28 +134,16 @@ export async function submitMaterial(input: {
   pages?: number;
   imageUrl?: string;
   imageUrls?: string[];
+  rawOcrText?: string;
+  ocrSource?: LockerOcrSource;
+  ocrQuality?: LockerOcrQuality;
+  ocrConfidence?: number | null;
+  aiReview?: Record<string, unknown>;
+  visionText?: string | null;
+  extractionStatus?: LockerExtractionStatus;
 }): Promise<StudyMaterial> {
   if (!supabase) throw new Error("Supabase is not configured");
-  const payload = {
-    profile_id: input.profileId || null,
-    title: input.title,
-    material_type: input.type,
-    school: input.school,
-    course: input.course || "General",
-    teacher: input.teacher || null,
-    grade_level: input.grade || null,
-    unit_topic: input.unit || null,
-    material_year: input.year || null,
-    pseudonym: input.pseudonym,
-    status: input.status,
-    moderation_reason: input.moderationReason || null,
-    tags: input.tags,
-    ocr_text: input.scannedText || null,
-    preview: input.preview,
-    pages: input.pages ?? 1,
-    image_url: input.imageUrl || null,
-    image_urls: input.imageUrls?.length ? input.imageUrls : null,
-  };
+  const payload = buildLockerMaterialPayload(input);
   if (input.status === "approved") {
     const { data, error } = await supabase
       .from("locker_materials")

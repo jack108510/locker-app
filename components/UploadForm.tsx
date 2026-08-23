@@ -23,6 +23,7 @@ type ScanPage = {
   id: string;
   file: File;
   text: string;
+  rawText?: string;
   progress: number;
   state: PageScanState;
   quality?: string;
@@ -180,7 +181,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
 
       const rawText = cleanOcrText(result.data.text);
       const confidence = Math.round(result.data.confidence || 0);
-      setPages((prev) => prev.map((p) => p.id === id ? { ...p, text: rawText, state: "checking", progress: 100, confidence, quality: `OCR ${confidence}% · checking text` } : p));
+      setPages((prev) => prev.map((p) => p.id === id ? { ...p, text: rawText, rawText, state: "checking", progress: 100, confidence, quality: `OCR ${confidence}% · checking text` } : p));
 
       const review = await reviewOcrWithBackend({ rawText, confidence, fileName: selectedFile.name });
       const initialQualityLabel = review.usable ? `OCR accepted · ${review.source === "ai_review" ? "AI checked" : "local checked"}` : "OCR weak · trying vision extraction";
@@ -249,6 +250,29 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
       .filter(Boolean)
       .flatMap((v) => String(v).split(/[,/]/).map((part) => part.trim()).filter(Boolean));
 
+    const rawOcrText = pages
+      .map((page, index) => page.rawText?.trim() ? `Page ${index + 1}\n${page.rawText.trim()}` : "")
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+    const usedVision = pages.some((page) => page.ocrSource === "vision_model");
+    const hadWeakOcr = pages.some((page) => page.reviewReason?.toLowerCase().includes("needs vision") || page.quality?.toLowerCase().includes("needs better"));
+    const avgConfidence = pages.length
+      ? Math.round(pages.reduce((sum, page) => sum + (page.confidence ?? 0), 0) / pages.length)
+      : null;
+    const aiReview = {
+      pages: pages.map((page, index) => ({
+        page: index + 1,
+        source: page.ocrSource || "tesseract",
+        confidence: page.confidence ?? null,
+        quality: page.quality || null,
+        reason: page.reviewReason || null,
+      })),
+    };
+    const ocrSource = usedVision ? "vision_model" : pages.some((page) => page.ocrSource === "ai_review") ? "ai_review" : pages.some((page) => page.ocrSource === "local_quality_gate") ? "local_quality_gate" : "tesseract";
+    const ocrQuality = usedVision ? "rescued" : hadWeakOcr ? "needs_vision" : scannedText ? "good" : "failed";
+    const extractionStatus = usedVision ? "vision_done" : hadWeakOcr ? "needs_vision" : scannedText ? "ocr_good" : "failed";
+
     const localMaterial: StudyMaterial = {
       id: `u-${Date.now()}`,
       title,
@@ -293,6 +317,13 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
           pages: pages.length,
           imageUrl: imageUrls[0],
           imageUrls,
+          rawOcrText,
+          ocrSource,
+          ocrQuality,
+          ocrConfidence: avgConfidence,
+          aiReview,
+          visionText: usedVision ? scannedText : null,
+          extractionStatus,
         });
         setSubmitError("");
       } catch (error) {
