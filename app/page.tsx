@@ -184,9 +184,17 @@ export default function Home() {
             <div className="space-y-5">
               <div className="space-y-4">
                 <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-5">
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-[#2997ff]">{mySchool.replace(" High School", "") || "Your school"}</p>
-                  <h1 className="mt-2 text-4xl font-semibold leading-[0.95] tracking-[-0.075em] text-white">Search the archive.</h1>
-                  <p className="mt-3 text-sm leading-6 text-white/48">Assignments, quizzes, worksheets, and past exams — searchable by class, teacher, unit, year, and text from the page.</p>
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-[#2997ff]">{mySchool.replace(" High School", "") || "Your school"}</p>
+                    <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-200">approved only</span>
+                  </div>
+                  <h1 className="text-4xl font-semibold leading-[0.95] tracking-[-0.075em] text-white">Find what the class already learned.</h1>
+                  <p className="mt-3 text-sm leading-6 text-white/52">Search past assignments, quizzes, worksheets, and exams by class, teacher, unit, year, or words OCR found on the page.</p>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-medium uppercase tracking-[0.12em] text-white/42">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 px-2 py-2">OCR search</div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 px-2 py-2">School feed</div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 px-2 py-2">Report tools</div>
+                  </div>
                 </div>
                 <ArchiveGrowthGraphic count={archivePageCount} school={mySchool.replace(" High School", "") || "your school"} />
               </div>
@@ -368,37 +376,48 @@ function AuthGate({ onAuth }: { onAuth: (user: LockerUser) => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/75 p-4 sm:items-center">
-      <form onSubmit={submit} className="w-full max-w-sm animate-slide-up rounded-[2rem] border border-white/10 bg-[#111217] p-6 shadow-2xl shadow-black/50">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="rounded-2xl bg-white text-black p-3">
-            <Lock size={20} />
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-4 backdrop-blur-md sm:items-center">
+      <form onSubmit={submit} className="w-full max-w-sm animate-slide-up overflow-hidden rounded-[2rem] border border-white/10 bg-[#111217] shadow-2xl shadow-black/50">
+        <div className="relative border-b border-white/10 bg-white/[0.035] p-6">
+          <div className="absolute -right-10 -top-12 h-32 w-32 rounded-full bg-[#0071e3]/25 blur-3xl" />
+          <div className="relative mb-5 flex items-center gap-3">
+            <div className="rounded-2xl bg-white p-3 text-black shadow-[0_14px_35px_rgba(0,0,0,0.25)]">
+              <Lock size={20} />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#2997ff]">Locker pass</p>
+              <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Choose your alias</h2>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white">Pick an alias</h2>
-            <p className="text-sm text-slate-500">No email. No password. Choose a handle and enter.</p>
+          <p className="relative text-sm leading-6 text-slate-400">No email, no password, no real name. Your alias is only used to attach uploads, votes, reports, and source blocking.</p>
+          <div className="relative mt-4 flex flex-wrap gap-2">
+            <span className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] text-slate-400">anonymous</span>
+            <span className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] text-slate-400">school-only feed</span>
+            <span className="rounded-full bg-white/[0.06] px-3 py-1 text-[11px] text-slate-400">moderated</span>
           </div>
         </div>
 
-        <label className="relative block">
-          <UserRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="alias"
-            autoCapitalize="none"
-            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-white outline-none placeholder:text-slate-600"
-          />
-        </label>
+        <div className="p-6">
+          <label className="relative block">
+            <UserRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g. chem-goblin"
+              autoCapitalize="none"
+              className="w-full rounded-full border border-white/10 bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#2997ff]/45 focus:bg-white/[0.065]"
+            />
+          </label>
 
-        {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
+          {error && <p className="mt-3 text-xs text-red-300">{error}</p>}
 
-        <button type="submit" className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-sm font-semibold text-black transition active:scale-[0.99]">
-          Enter Locker <ArrowRight size={16} />
-        </button>
-        <p className="mt-4 text-center text-[11px] leading-5 text-slate-600">
-          Your alias and school are saved so Locker can connect uploads to a public handle.
-        </p>
+          <button type="submit" className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-sm font-semibold text-black transition active:scale-[0.99]">
+            Enter Locker <ArrowRight size={16} />
+          </button>
+          <p className="mt-4 text-center text-[11px] leading-5 text-slate-600">
+            You can change schools after entering. Current tests and private keys are not allowed.
+          </p>
+        </div>
       </form>
     </div>
   );
@@ -533,16 +552,24 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
           <div className="relative overflow-hidden rounded-[2.2rem] border border-white/10 bg-white/[0.045] p-4 blue-glow">
             <div className="archive-grid pointer-events-none absolute inset-0 opacity-70" />
             <div className="relative space-y-5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[11px] font-medium text-white/70 glass">
-                <Database size={13} className="text-[#2997ff]" /> Your school&apos;s assignment database
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-[11px] font-medium text-white/70 glass">
+                  <Database size={13} className="text-[#2997ff]" /> School study archive
+                </div>
+                <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[11px] font-medium text-emerald-200">reviewed before public</div>
               </div>
               <div className="space-y-3">
-                <h1 className="text-[3.65rem] font-semibold leading-[0.88] tracking-[-0.09em] text-white">
-                  Every class.<br />Every page.<br />Found fast.
+                <h1 className="text-[3.9rem] font-semibold leading-[0.86] tracking-[-0.095em] text-white">
+                  Old tests.<br />New edge.
                 </h1>
                 <p className="max-w-[21rem] text-[17px] leading-7 tracking-[-0.02em] text-white/66">
-                  Search assignments, quizzes, worksheets, and past exams from your own school — scanned by students, organized for studying.
+                  Turn old assignments, quizzes, worksheets, and past exams into a searchable study archive for your school.
                 </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <MiniStat value="1,284" label="pages indexed" />
+                <MiniStat value="OCR" label="text search" />
+                <MiniStat value="24/7" label="reports" />
               </div>
               <div className="relative rounded-[1.65rem] border border-white/10 bg-black/55 p-4 shadow-2xl shadow-black/50">
                 <div className="mb-3 flex items-center justify-between text-[11px] text-white/45">
@@ -571,9 +598,9 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
               <span className="rounded-full bg-[#0071e3]/15 px-2.5 py-1 text-[10px] font-semibold text-[#2997ff]">reviewed archive</span>
             </div>
             <div className="space-y-3">
-              <FeatureRow icon={<ScanText size={18} />} title="Scan school material" text="Assignments, quizzes, worksheets, past exams, and completed copies." />
-              <FeatureRow icon={<ShieldCheck size={18} />} title="Cleaned and moderated" text="Active tests, teacher-only keys, and personal info stay blocked." />
-              <FeatureRow icon={<Archive size={18} />} title="Search the archive" text="Find material by class, teacher, grade, unit, year, or OCR text." />
+              <FeatureRow icon={<ScanText size={18} />} title="Scan a page" text="Add one page or a full packet from camera or photo library." />
+              <FeatureRow icon={<ShieldCheck size={18} />} title="Locker checks it" text="Current tests, private keys, personal info, and abuse are blocked." />
+              <FeatureRow icon={<Archive size={18} />} title="Search like a database" text="Find by class, teacher, grade, unit, year, or words from the page." />
             </div>
           </div>
         </div>
@@ -583,7 +610,7 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
             onClick={onboard ?? onGetStarted}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-5 py-4 text-[15px] font-semibold tracking-[-0.01em] text-black transition active:scale-[0.99]"
           >
-            Search the school archive <ArrowRight size={16} />
+            Enter Locker <ArrowRight size={16} />
           </button>
           <div className="space-y-2 text-center text-xs text-white/35">
             <p>Anonymous uploads · school-only database · reviewed before public</p>
@@ -591,6 +618,15 @@ function LandingView({ onGetStarted, onboard }: { onGetStarted: () => void; onbo
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function MiniStat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/35 px-3 py-3 text-center glass">
+      <p className="text-lg font-semibold tracking-[-0.04em] text-white">{value}</p>
+      <p className="mt-0.5 text-[10px] uppercase tracking-[0.12em] text-white/38">{label}</p>
     </div>
   );
 }

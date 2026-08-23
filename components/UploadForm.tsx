@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SCHOOLS, MATERIAL_TYPES, moderateUpload, MaterialType, StudyMaterial } from "@/lib/mockData";
 import { submitMaterial, uploadMaterialImages } from "@/lib/lockerData";
+import { reviewOcrWithBackend, extractTextWithVision } from "@/lib/ocrPipelineClient";
 import { supabaseConfigured } from "@/lib/supabase";
 import { Upload, CheckCircle, AlertCircle, XCircle, X, ScanText, Loader2, Camera, Sparkles, Wand2 } from "lucide-react";
 import { clsx } from "clsx";
@@ -16,7 +17,7 @@ interface UploadFormProps {
 }
 
 type SubmitState = "idle" | "reviewing" | "approved" | "pending" | "blocked";
-type PageScanState = "scanning" | "done" | "unsupported" | "error";
+type PageScanState = "scanning" | "checking" | "enhancing" | "done" | "unsupported" | "error";
 
 type ScanPage = {
   id: string;
@@ -25,6 +26,9 @@ type ScanPage = {
   progress: number;
   state: PageScanState;
   quality?: string;
+  ocrSource?: "tesseract" | "ai_review" | "vision_model" | "local_quality_gate";
+  reviewReason?: string;
+  confidence?: number;
 };
 
 type InferredFields = {
@@ -69,7 +73,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
       .trim();
   }, [pages]);
 
-  const scanState = pages.some((p) => p.state === "scanning")
+  const scanState = pages.some((p) => p.state === "scanning" || p.state === "checking" || p.state === "enhancing")
     ? "scanning"
     : pages.length === 0
       ? "idle"
@@ -174,8 +178,30 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
         },
       });
 
-      const text = cleanOcrText(result.data.text);
-      setPages((prev) => prev.map((p) => p.id === id ? { ...p, text, state: text ? "done" : "error", progress: 100 } : p));
+      const rawText = cleanOcrText(result.data.text);
+      const confidence = Math.round(result.data.confidence || 0);
+      setPages((prev) => prev.map((p) => p.id === id ? { ...p, text: rawText, state: "checking", progress: 100, confidence, quality: `OCR ${confidence}% · checking text` } : p));
+
+      const review = await reviewOcrWithBackend({ rawText, confidence, fileName: selectedFile.name });
+      const initialQualityLabel = review.usable ? `OCR accepted · ${review.source === "ai_review" ? "AI checked" : "local checked"}` : "OCR weak · trying vision extraction";
+      let visionResult: Awaited<ReturnType<typeof extractTextWithVision>> | null = null;
+
+      if (review.needsVision) {
+        setPages((prev) => prev.map((p) => p.id === id ? { ...p, state: "enhancing", quality: initialQualityLabel, reviewReason: review.reason } : p));
+        visionResult = await extractTextWithVision({ file: selectedFile, rawText, confidence });
+      }
+
+      const visionSucceeded = Boolean(visionResult?.ok && visionResult.text.trim());
+      const text = visionSucceeded ? cleanOcrText(visionResult?.text || "") : review.cleanedText;
+      const ocrSource: ScanPage["ocrSource"] = visionSucceeded ? "vision_model" : review.source;
+      const reviewReason = visionSucceeded ? (visionResult?.reason || "Vision model rescued the scan.") : review.reason;
+      const qualityLabel = visionSucceeded
+        ? "Vision extracted text"
+        : review.needsVision
+          ? `Needs better photo · ${visionResult?.reason || review.reason}`
+          : initialQualityLabel;
+
+      setPages((prev) => prev.map((p) => p.id === id ? { ...p, text, state: text ? "done" : "error", progress: 100, quality: qualityLabel, ocrSource, reviewReason, confidence } : p));
       const combined = [...pages.map((p) => p.text), text].filter(Boolean).join("\n\n");
       applySuggestions(inferFields(`${selectedFile.name}\n${combined}`, courses));
     } catch {
@@ -294,9 +320,14 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
 
   if (state === "reviewing") {
     return (
-      <div className="flex flex-col items-center justify-center py-16 gap-4 animate-slide-up">
-        <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
-        <p className="text-slate-400 text-sm">Checking the material before it joins the archive…</p>
+      <div className="flex flex-col items-center justify-center gap-4 py-16 animate-slide-up">
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#2997ff]/20 bg-[#2997ff]/10">
+          <div className="h-10 w-10 rounded-full border-4 border-[#2997ff] border-t-transparent animate-spin" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-white">Reviewing before it goes public</p>
+          <p className="mt-1 text-xs text-slate-500">Checking active-test, private-key, and personal-info rules…</p>
+        </div>
       </div>
     );
   }
@@ -307,7 +338,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
         <CheckCircle size={52} className="text-emerald-400" strokeWidth={1.5} />
         <h3 className="text-xl font-bold text-white">Added to the school archive</h3>
         <p className="text-slate-400 text-sm max-w-xs">{submitError || `Your material is searchable by students from ${school}.`}</p>
-        <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all">
+        <button onClick={reset} className="mt-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-all active:scale-[0.99]">
           Scan another
         </button>
       </div>
@@ -322,7 +353,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
         <p className="text-slate-400 text-sm max-w-xs">
           {submitError || moderationResult?.reason || "Your scan is under review. It goes into the school archive once a moderator clears it."}
         </p>
-        <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-[#1a1b2e] border border-[#2a2b45] hover:border-indigo-500/40 text-white font-semibold text-sm transition-all">
+        <button onClick={reset} className="mt-2 rounded-full border border-white/10 bg-white/[0.05] px-6 py-3 text-sm font-semibold text-white transition-all hover:border-[#2997ff]/40">
           Scan another
         </button>
       </div>
@@ -345,7 +376,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
             <li>Photos containing personal student info</li>
           </ul>
         </div>
-        <button onClick={reset} className="mt-2 px-6 py-3 rounded-2xl bg-[#1a1b2e] border border-[#2a2b45] hover:border-indigo-500/40 text-white font-semibold text-sm transition-all">
+        <button onClick={reset} className="mt-2 rounded-full border border-white/10 bg-white/[0.05] px-6 py-3 text-sm font-semibold text-white transition-all hover:border-[#2997ff]/40">
           Try again with old material
         </button>
       </div>
@@ -354,9 +385,15 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 animate-slide-up">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-[-0.04em] text-white mb-1">Scan school material</h2>
-        <p className="text-sm text-slate-500">Add assignments, quizzes, worksheets, or past exams to your school&apos;s searchable study archive.</p>
+      <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] p-5">
+        <div className="mb-4 inline-flex rounded-full border border-[#2997ff]/20 bg-[#2997ff]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8cc7ff]">contribute</div>
+        <h2 className="text-3xl font-semibold leading-none tracking-[-0.065em] text-white">Add a page to the archive.</h2>
+        <p className="mt-3 text-sm leading-6 text-slate-400">Scan old assignments, quizzes, worksheets, or past exams. Locker extracts text, suggests labels, then reviews before public.</p>
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] font-medium uppercase tracking-[0.12em] text-white/42">
+          <div className="rounded-2xl border border-white/10 bg-black/20 px-2 py-2">photo</div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 px-2 py-2">OCR</div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 px-2 py-2">review</div>
+        </div>
       </div>
 
       <button
@@ -433,7 +470,7 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-slate-500 mb-2">School material pages</label>
+        <label className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-500"><span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2997ff]/10 text-[11px] text-[#8cc7ff]">1</span> School material pages</label>
         <div
           onClick={() => fileRef.current?.click()}
           className={clsx(
@@ -444,13 +481,14 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
           )}
         >
           <Upload size={22} className="text-slate-600 mx-auto mb-2" />
-          <p className="text-sm text-slate-400 font-medium">{pages.length ? "Add more photos" : "Or pick photos of old material"}</p>
-          <p className="text-xs text-slate-600 mt-1">Assignments, quizzes, worksheets, past exams</p>
+          <p className="text-sm font-medium text-slate-300">{pages.length ? "Add more photos" : "Pick photos of old material"}</p>
+          <p className="mt-1 text-xs text-slate-600">Assignments, quizzes, worksheets, past exams</p>
+          <p className="mt-3 text-[11px] text-slate-500">Tip: flat page, good light, all corners visible.</p>
         </div>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" multiple onChange={handleFile} className="hidden" />
 
         {pages.length > 0 && (
-          <div className="mt-3 space-y-3 rounded-2xl border border-[#2a2b45] bg-[#101522] p-4">
+          <div className="mt-3 space-y-3 rounded-[1.5rem] border border-white/10 bg-white/[0.035] p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 {scanState === "scanning" ? <Loader2 size={16} className="animate-spin text-cyan-300" /> : <ScanText size={16} className="text-cyan-300" />}
@@ -473,22 +511,32 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
                   </button>
                 </div>
 
-                {page.state === "scanning" && (
+                {(page.state === "scanning" || page.state === "checking" || page.state === "enhancing") && (
                   <div>
-                    <div className="h-2 overflow-hidden rounded-full bg-[#1a1b2e]">
-                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all" style={{ width: `${Math.max(page.progress, 8)}%` }} />
+                    <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                      <div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-indigo-500 transition-all" style={{ width: `${Math.max(page.progress, page.state === "enhancing" ? 96 : page.state === "checking" ? 92 : 8)}%` }} />
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">Pulling text off this page… {page.progress}%</p>
+                    <p className="mt-2 text-xs text-slate-500">
+                      {page.state === "scanning" && `Pulling text off this page… ${page.progress}%`}
+                      {page.state === "checking" && "AI quality gate is checking whether OCR makes sense…"}
+                      {page.state === "enhancing" && "OCR looked weak — sending the image to vision extraction…"}
+                    </p>
                   </div>
                 )}
 
                 {page.state === "done" && (
-                  <textarea
-                    value={page.text}
-                    onChange={(e) => updatePageText(page.id, e.target.value)}
-                    rows={4}
-                    className="w-full resize-none rounded-xl border border-[#2a2b45] bg-[#0b0d16] px-3 py-2 text-xs leading-relaxed text-slate-300 outline-none focus:border-cyan-400/50"
-                  />
+                  <div className="space-y-2">
+                    <textarea
+                      value={page.text}
+                      onChange={(e) => updatePageText(page.id, e.target.value)}
+                      rows={4}
+                      className="w-full resize-none rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-xs leading-relaxed text-slate-300 outline-none focus:border-[#2997ff]/50"
+                    />
+                    <p className="text-[11px] leading-4 text-slate-600">
+                      {page.ocrSource === "vision_model" ? "Vision fallback used" : page.ocrSource === "ai_review" ? "OCR accepted by AI quality gate" : "OCR accepted by local quality gate"}
+                      {page.confidence ? ` · Tesseract ${page.confidence}%` : ""}
+                    </p>
+                  </div>
                 )}
 
                 {page.state === "unsupported" && <p className="text-xs leading-relaxed text-amber-300/80">Locker only takes photos from the camera or photo library.</p>}
@@ -532,8 +580,9 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
           </div>
 
           <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-xs text-slate-600">School</p>
+            <p className="text-xs text-slate-600">School archive</p>
             <p className="mt-1 text-sm font-medium text-white">{school || currentSchool || "Nearby school"}</p>
+            <p className="mt-1 text-[11px] text-slate-600">Only students browsing this school will see approved material.</p>
           </div>
 
           <div>
@@ -565,8 +614,8 @@ export function UploadForm({ pseudonym, currentSchool, profileId, onApproved, on
             {teacher && <Pill>Teacher: {teacher}</Pill>}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-xs leading-5 text-slate-500">
-            Public to your school after review. Past assignments/quizzes/exams are allowed for studying; active tests, teacher-only keys, and personal info stay blocked.
+          <div className="rounded-2xl border border-emerald-300/15 bg-emerald-300/[0.055] p-3 text-xs leading-5 text-emerald-100/75">
+            Public to your school after review. Past assignments, quizzes, worksheets, exams, and student-filled answers are allowed for studying. Active tests, teacher-only keys, and personal info stay blocked.
           </div>
 
           <button

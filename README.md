@@ -57,12 +57,23 @@ Locker now supports:
 - live camera scanning with a mobile frame
 - multiple pages per material
 - photo-library fallback with multiple images
-- client-side OCR via `tesseract.js`
-- editable OCR text per page
+- first-pass client-side OCR via `tesseract.js`
+- AI OCR quality review through Supabase Edge Function `locker-ocr-pipeline`
+- vision-model fallback when first-pass OCR is corrupted or low-confidence
+- editable extracted text per page
 - basic image quality hints for low light / blur
 - auto-filled metadata suggestions for type, class, grade, unit/topic, teacher, year, and title
 
-The upload path is intentionally scan-first: image pages first, then labels unlock.
+The upload path is intentionally scan-first: image pages first, OCR/AI extraction second, then labels unlock.
+
+Backend files:
+
+```bash
+supabase/functions/locker-ocr-pipeline/index.ts
+supabase/locker_ocr_pipeline.sql
+```
+
+The edge function expects `OPENAI_API_KEY` in Supabase function secrets for AI review + vision fallback. If the function is unavailable, the app falls back to the local OCR quality gate instead of blocking uploads.
 
 ## Product Boundary
 

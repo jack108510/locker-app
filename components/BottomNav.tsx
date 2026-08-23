@@ -25,6 +25,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
           return (
             <button
               key={id}
+              type="button"
               onClick={() => onChange(id)}
               className={clsx(
                 "flex flex-1 items-center justify-center gap-2 rounded-full px-3 py-3 text-xs font-medium transition",

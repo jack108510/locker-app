@@ -105,25 +105,25 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 modal-backdrop bg-black/70 overflow-y-auto">
-      <div className="w-full max-w-sm max-h-[92vh] overflow-y-auto bg-[#12131f] border border-[#2a2b45] rounded-3xl p-6 animate-slide-up shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/70 p-4 modal-backdrop sm:items-center">
+      <div className="w-full max-w-sm max-h-[92vh] overflow-y-auto rounded-[2rem] border border-white/10 bg-[#111217] p-6 shadow-2xl shadow-black/50 animate-slide-up">
         {step === 1 && (
           <>
             <div className="flex justify-center mb-5">
               <LockerIcon size="lg" />
             </div>
-            <h2 className="text-2xl font-bold text-center text-white mb-1">Welcome to Locker</h2>
-            <p className="text-slate-400 text-center text-sm mb-6">
-              A shared database of old assignments, quizzes, and exams.
+            <h2 className="mb-1 text-center text-2xl font-semibold tracking-[-0.045em] text-white">Set up your locker</h2>
+            <p className="mb-6 text-center text-sm leading-6 text-slate-400">
+              Join the study archive for your school without using your real name.
             </p>
 
-            <div className="bg-[#1a1b2e] rounded-2xl p-4 mb-4 border border-[#2a2b45]">
-              <p className="text-xs text-slate-500 uppercase tracking-widest mb-2 font-semibold">Your alias</p>
+            <div className="mb-4 rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Public alias</p>
               <div className="flex items-center justify-between">
-                <span className="text-xl font-bold text-indigo-300">{pseudonym}</span>
+                <span className="text-xl font-semibold tracking-[-0.03em] text-white">{pseudonym}</span>
                 <button
                   onClick={reroll}
-                  className="p-2 rounded-xl hover:bg-[#2a2b45] transition-colors text-slate-400 hover:text-white"
+                  className="rounded-full bg-white/[0.05] p-2 text-slate-400 transition-colors hover:bg-white/[0.08] hover:text-white"
                   title="Get a new alias"
                 >
                   <RefreshCw size={16} />
@@ -133,52 +133,52 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
 
             <button
               onClick={() => setShowWhat(!showWhat)}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 mb-4 transition-colors"
+              className="mb-4 flex items-center gap-1.5 text-xs text-slate-500 transition-colors hover:text-slate-300"
             >
               {showWhat ? <EyeOff size={13} /> : <Eye size={13} />}
               {showWhat ? "Hide" : "What do we know about you?"}
             </button>
 
             {showWhat && (
-              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 mb-4 text-sm text-emerald-300 space-y-1">
-                <p>✓ No real name required in the prototype.</p>
-                <p>✓ Your drops show under an alias.</p>
-                <p>✓ Your school chooses which public test bank you enter.</p>
+              <div className="mb-4 space-y-1 rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.06] p-3 text-sm text-emerald-200">
+                <p>✓ No real name is required.</p>
+                <p>✓ Uploads show under this alias.</p>
+                <p>✓ Your school controls which study archive you enter.</p>
               </div>
             )}
 
             <button
               onClick={handleContinue}
-              className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold transition-all duration-150 flex items-center justify-center gap-2"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 font-semibold text-black transition-all duration-150 active:scale-[0.99]"
             >
-              Enter anonymously <ArrowRight size={16} />
+              Continue anonymously <ArrowRight size={16} />
             </button>
           </>
         )}
 
         {step === 2 && (
           <>
-            <h2 className="text-xl font-bold text-white mb-1">Schools near you</h2>
-            <p className="text-slate-400 text-sm mb-5">
-              Pick your school to search the shared database and add old material.
+            <h2 className="mb-1 text-xl font-semibold tracking-[-0.035em] text-white">Pick your school</h2>
+            <p className="mb-5 text-sm leading-6 text-slate-400">
+              This keeps each archive relevant, searchable, and easier to moderate.
             </p>
 
-            <div className="mb-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+            <div className="mb-4 rounded-[1.5rem] border border-[#2997ff]/20 bg-[#2997ff]/[0.06] p-4">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 rounded-xl bg-cyan-400/10 p-2 text-cyan-300">
+                <div className="mt-0.5 rounded-xl bg-[#2997ff]/10 p-2 text-[#8cc7ff]">
                   {locationStatus === "loading" ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-cyan-100">
+                  <p className="text-sm font-semibold text-cyan-50">
                     {locationStatus === "loading" ? "Finding nearby schools…" : "Location-based school list"}
                   </p>
-                  <p className="mt-1 text-xs leading-relaxed text-cyan-100/60">
+                  <p className="mt-1 text-xs leading-relaxed text-cyan-50/60">
                     Location is used only in this browser for school suggestions. It is not saved to your account, upload, or profile.
                   </p>
                   {locationStatus !== "loading" && (
                     <button
                       onClick={getNearbySchools}
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-400/15"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#2997ff]/10 px-3 py-2 text-xs font-semibold text-[#8cc7ff] transition-colors hover:bg-[#2997ff]/15"
                     >
                       <MapPin size={13} /> Refresh nearby schools
                     </button>
@@ -186,28 +186,28 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                 </div>
               </div>
               {locationMessage && (
-                <p className={`mt-3 text-xs ${locationStatus === "error" ? "text-amber-300/80" : "text-cyan-100/60"}`}>
+                <p className={`mt-3 text-xs ${locationStatus === "error" ? "text-amber-300/80" : "text-cyan-50/60"}`}>
                   {locationMessage}
                 </p>
               )}
             </div>
 
             <div className="mb-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500">Nearby suggestions</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Nearby suggestions</p>
               {nearbySchools.length === 0 ? (
-                <div className="rounded-xl border border-[#2a2b45] bg-[#1a1b2e] px-4 py-6 text-center text-sm text-slate-500">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-slate-500">
                   Waiting for location permission…
                 </div>
               ) : (
-                <div className="space-y-2 max-h-36 overflow-y-auto pr-1 pb-2">
+                <div className="max-h-40 space-y-2 overflow-y-auto pb-2 pr-1">
                   {nearbySchools.map((s) => (
                     <button
                       key={s.name}
                       onClick={() => setSchool(s.name)}
                       className={`w-full text-left px-4 py-3 rounded-xl border transition-all text-sm font-medium ${
                         school === s.name
-                          ? "border-cyan-400 bg-cyan-400/10 text-cyan-200"
-                          : "border-[#2a2b45] bg-[#1a1b2e] text-slate-300 hover:border-cyan-400/40"
+                          ? "border-[#2997ff] bg-[#2997ff]/10 text-[#b9ddff]"
+                          : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-[#2997ff]/40"
                       }`}
                     >
                       {s.name}
@@ -220,9 +220,9 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             <button
               onClick={handleContinue}
               disabled={!school}
-              className="mt-3 w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-black/30"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-white py-3.5 font-semibold text-black shadow-lg shadow-black/30 transition-all disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Enter test bank <ArrowRight size={16} />
+              Enter study archive <ArrowRight size={16} />
             </button>
           </>
         )}
