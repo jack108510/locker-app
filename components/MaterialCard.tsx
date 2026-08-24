@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { StudyMaterial, MATERIAL_TYPES } from "@/lib/mockData";
 import { ArrowUp, Bookmark, Flag, Archive, Ban } from "lucide-react";
-import { reportMaterial, upvoteMaterial } from "@/lib/lockerData";
+import { blockSource, reportMaterial, saveMaterial, unsaveMaterial, upvoteMaterial } from "@/lib/lockerData";
 import { clsx } from "clsx";
 
 interface MaterialCardProps {
@@ -19,6 +19,7 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
   const [upvotes, setUpvotes] = useState(material.upvotes);
   const [upvoted, setUpvoted] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saves, setSaves] = useState(material.saves);
   const [reported, setReported] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("current test or private key");
@@ -26,9 +27,24 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!upvoted) void upvoteMaterial(material.id, profileId).catch(console.warn);
-    setUpvoted((v) => !v);
-    setUpvotes((v) => upvoted ? v - 1 : v + 1);
+    if (upvoted) return;
+    void upvoteMaterial(material.id, profileId).catch(console.warn);
+    setUpvoted(true);
+    setUpvotes((v) => v + 1);
+  };
+
+  const handleSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = !saved;
+    setSaved(next);
+    setSaves((v) => Math.max(0, v + (next ? 1 : -1)));
+    void (next ? saveMaterial(material.id, profileId) : unsaveMaterial(material.id)).catch(console.warn);
+  };
+
+  const handleBlock = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onBlockSource?.(material.pseudonym);
+    void blockSource(material.pseudonym, profileId).catch(console.warn);
   };
 
   if (reported) {
@@ -53,9 +69,10 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
           </h3>
         </div>
         <button
-          onClick={(e) => { e.stopPropagation(); setSaved((v) => !v); }}
+          onClick={handleSave}
           className={clsx("rounded-full p-2 transition", saved ? "bg-white text-black" : "bg-white/[0.04] text-slate-500")}
-          aria-label="Save to locker"
+          aria-label={saved ? "Remove save" : "Save to locker"}
+          title={`${saves} save${saves === 1 ? "" : "s"}`}
         >
           <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
         </button>
@@ -100,7 +117,7 @@ export function MaterialCard({ material, onOpen, matchReason, matchedTerms = [],
             <ArrowUp size={13} /> {upvotes}
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onBlockSource?.(material.pseudonym); }}
+            onClick={handleBlock}
             className="rounded-full p-2 text-slate-600"
             aria-label="Block this source"
             title="Block this source"

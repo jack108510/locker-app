@@ -10,7 +10,7 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { UploadForm } from "@/components/UploadForm";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { APPROVED_MATERIALS, COMMUNITY_STATS, StudyMaterial } from "@/lib/mockData";
-import { loadApprovedMaterials, loadCommunityStats, upsertProfile } from "@/lib/lockerData";
+import { blockSource, loadApprovedMaterials, loadBlockedSources, loadCommunityStats, upsertProfile } from "@/lib/lockerData";
 import { supabaseConfigured } from "@/lib/supabase";
 import { Archive, ArrowRight, Database, ScanText, Lock, UserRound, ShieldCheck } from "lucide-react";
 
@@ -46,6 +46,7 @@ export default function Home() {
   const [filterType, setFilterType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [blockedSources, setBlockedSources] = useState<string[]>([]);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   useEffect(() => {
     // localStorage hydration is the whole point of this prototype login.
@@ -62,6 +63,10 @@ export default function Home() {
       setTab(savedUser.school ? "browse" : "home");
     }
     setBlockedSources(readBlockedSources());
+    const params = new URLSearchParams(window.location.search);
+    const adminUnlocked = params.get("admin") === "1" || window.localStorage.getItem("locker-admin-unlocked") === "true";
+    setShowAdmin(adminUnlocked);
+    if (adminUnlocked) window.localStorage.setItem("locker-admin-unlocked", "true");
     setAuthReady(true);
   }, []);
 
@@ -70,10 +75,11 @@ export default function Home() {
     async function loadLiveData() {
       if (!supabaseConfigured || !mySchool) return;
       try {
-        const [materials, stats] = await Promise.all([loadApprovedMaterials(mySchool), loadCommunityStats(mySchool)]);
+        const [materials, stats, liveBlocked] = await Promise.all([loadApprovedMaterials(mySchool), loadCommunityStats(mySchool), loadBlockedSources()]);
         if (!active) return;
         setApprovedFeed(materials.length ? materials : APPROVED_MATERIALS);
         setCommunityStats(stats);
+        setBlockedSources(Array.from(new Set([...readBlockedSources(), ...liveBlocked])));
         setDataStatus("live");
       } catch (error) {
         console.warn("Locker live data unavailable; using local seed data", error);
@@ -152,7 +158,16 @@ export default function Home() {
       {authReady && user && !onboarded && <OnboardingModal onComplete={handleOnboardComplete} />}
 
       {viewingMaterial && (
-        <DocumentViewer material={viewingMaterial} onClose={() => setViewingMaterial(null)} />
+        <DocumentViewer
+          material={viewingMaterial}
+          onClose={() => setViewingMaterial(null)}
+          profileId={profileId}
+          onBlockSource={(source) => {
+            const next = Array.from(new Set([...blockedSources, source]));
+            setBlockedSources(next);
+            window.localStorage.setItem(BLOCKED_SOURCES_KEY, JSON.stringify(next));
+          }}
+        />
       )}
 
       <div className="relative mx-auto flex min-h-screen max-w-md flex-col overflow-hidden bg-black">
@@ -240,6 +255,7 @@ export default function Home() {
                         const next = Array.from(new Set([...blockedSources, source]));
                         setBlockedSources(next);
                         window.localStorage.setItem(BLOCKED_SOURCES_KEY, JSON.stringify(next));
+                        void blockSource(source, profileId).catch(console.warn);
                       }}
                     />
                   ))}
@@ -258,12 +274,23 @@ export default function Home() {
             />
           )}
 
-          {tab === "admin" && (
-            <AdminDashboard approved={approvedFeed} pending={pendingQueue} />
+          {tab === "admin" && showAdmin && (
+            <AdminDashboard
+              approved={approvedFeed}
+              pending={pendingQueue}
+              school={mySchool}
+              onOpenMaterial={setViewingMaterial}
+              onModerationChange={(material) => {
+                if (material.status === "approved") {
+                  setApprovedFeed((prev) => [material, ...prev.filter((m) => m.id !== material.id)]);
+                }
+                setPendingQueue((prev) => prev.filter((m) => m.id !== material.id));
+              }}
+            />
           )}
         </main>
 
-        {onboarded && <BottomNav active={tab} onChange={setTab} />}
+        {onboarded && <BottomNav active={tab} onChange={setTab} showAdmin={showAdmin} />}
       </div>
     </>
   );

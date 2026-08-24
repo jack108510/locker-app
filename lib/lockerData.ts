@@ -9,6 +9,16 @@ export type LockerProfile = {
   school: string;
 };
 
+export type LockerReport = {
+  id: string;
+  materialId: string;
+  profileId?: string;
+  reason: string;
+  status: "open" | "reviewing" | "resolved" | "dismissed";
+  createdAt: string;
+  material?: StudyMaterial;
+};
+
 type DbMaterial = {
   id: string;
   title: string;
@@ -40,6 +50,16 @@ type DbMaterial = {
   extraction_status: LockerExtractionStatus | null;
 };
 
+type DbReport = {
+  id: string;
+  material_id: string;
+  profile_id: string | null;
+  reason: string;
+  status: "open" | "reviewing" | "resolved" | "dismissed";
+  created_at: string;
+  locker_materials?: DbMaterial | DbMaterial[] | null;
+};
+
 const MATERIAL_SELECT = "id,title,material_type,school,course,teacher,grade_level,unit_topic,material_year,pseudonym,created_at,upvotes,saves,status,moderation_reason,tags,preview,ocr_text,pages,image_url,image_urls,raw_ocr_text,ocr_source,ocr_quality,ocr_confidence,ai_review,vision_text,extraction_status";
 
 export function dbToMaterial(row: DbMaterial): StudyMaterial {
@@ -68,20 +88,83 @@ export function dbToMaterial(row: DbMaterial): StudyMaterial {
   };
 }
 
-export async function loadApprovedMaterials(school?: string): Promise<StudyMaterial[]> {
+export async function loadApprovedMaterials(school?: string, search?: string): Promise<StudyMaterial[]> {
   if (!supabase) return [];
   let query = supabase
     .from("locker_materials")
     .select(MATERIAL_SELECT)
     .eq("status", "approved")
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(100);
 
   if (school) query = query.eq("school", school);
+  const q = search?.trim();
+  if (q) {
+    const safe = q.replace(/[%_]/g, "");
+    query = query.or(`title.ilike.%${safe}%,course.ilike.%${safe}%,teacher.ilike.%${safe}%,unit_topic.ilike.%${safe}%,ocr_text.ilike.%${safe}%`);
+  }
   const { data, error } = await query;
 
   if (error) throw error;
   return (data ?? []).map((row) => dbToMaterial(row as DbMaterial));
+}
+
+export async function loadModerationMaterials(school?: string): Promise<StudyMaterial[]> {
+  if (!supabase) return [];
+  let query = supabase
+    .from("locker_materials")
+    .select(MATERIAL_SELECT)
+    .in("status", ["pending", "blocked"])
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (school) query = query.eq("school", school);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row) => dbToMaterial(row as DbMaterial));
+}
+
+export async function updateMaterialModeration(materialId: string, status: ModerationStatus, reason?: string) {
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase
+    .from("locker_materials")
+    .update({ status, moderation_reason: reason || null, updated_at: new Date().toISOString() })
+    .eq("id", materialId)
+    .select(MATERIAL_SELECT)
+    .single();
+  if (error) throw error;
+  return dbToMaterial(data as DbMaterial);
+}
+
+export async function loadReports(): Promise<LockerReport[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("locker_reports")
+    .select(`id,material_id,profile_id,reason,status,created_at,locker_materials(${MATERIAL_SELECT})`)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return (data ?? []).map((row) => {
+    const report = row as DbReport;
+    const joined = Array.isArray(report.locker_materials) ? report.locker_materials[0] : report.locker_materials;
+    return {
+      id: report.id,
+      materialId: report.material_id,
+      profileId: report.profile_id ?? undefined,
+      reason: report.reason,
+      status: report.status ?? "open",
+      createdAt: report.created_at,
+      material: joined ? dbToMaterial(joined) : undefined,
+    };
+  });
+}
+
+export async function resolveReport(reportId: string, status: "resolved" | "dismissed", reason?: string) {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("locker_reports")
+    .update({ status, handled_reason: reason || null, handled_at: new Date().toISOString() })
+    .eq("id", reportId);
+  if (error) throw error;
 }
 
 export async function loadCommunityStats(school?: string) {
@@ -144,19 +227,13 @@ export async function submitMaterial(input: {
 }): Promise<StudyMaterial> {
   if (!supabase) throw new Error("Supabase is not configured");
   const payload = buildLockerMaterialPayload(input);
-  if (input.status === "approved") {
-    const { data, error } = await supabase
-      .from("locker_materials")
-      .insert(payload)
-      .select(MATERIAL_SELECT)
-      .single();
-    if (error) throw error;
-    return dbToMaterial(data as DbMaterial);
-  }
-
-  const { error } = await supabase.from("locker_materials").insert(payload);
+  const { data, error } = await supabase
+    .from("locker_materials")
+    .insert(payload)
+    .select(MATERIAL_SELECT)
+    .single();
   if (error) throw error;
-  return {
+  return data ? dbToMaterial(data as DbMaterial) : {
     id: crypto.randomUUID(),
     title: input.title,
     type: input.type,
@@ -203,7 +280,8 @@ export async function uploadMaterialImages(files: File[], school: string) {
 
 export async function reportMaterial(materialId: string, profileId?: string, reason = "reported") {
   if (!supabase) return;
-  await supabase.from("locker_reports").insert({ material_id: materialId, profile_id: profileId || null, reason });
+  const { error } = await supabase.from("locker_reports").insert({ material_id: materialId, profile_id: profileId || null, reason, status: "open" });
+  if (error) throw error;
 }
 
 export async function upvoteMaterial(materialId: string, profileId?: string) {
@@ -211,6 +289,49 @@ export async function upvoteMaterial(materialId: string, profileId?: string) {
   const deviceId = getDeviceId();
   const { error } = await supabase.from("locker_votes").insert({ material_id: materialId, profile_id: profileId || null, device_id: deviceId });
   if (error && !String(error.message).toLowerCase().includes("duplicate")) throw error;
+}
+
+export async function saveMaterial(materialId: string, profileId?: string) {
+  if (!supabase) return;
+  const deviceId = getDeviceId();
+  const { error } = await supabase.from("locker_saves").insert({ material_id: materialId, profile_id: profileId || null, device_id: deviceId });
+  if (error && !String(error.message).toLowerCase().includes("duplicate")) throw error;
+}
+
+export async function unsaveMaterial(materialId: string) {
+  if (!supabase) return;
+  const { error } = await supabase.from("locker_saves").delete().eq("material_id", materialId).eq("device_id", getDeviceId());
+  if (error) throw error;
+}
+
+export async function loadSavedMaterialIds() {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("locker_saves").select("material_id").eq("device_id", getDeviceId());
+  if (error) throw error;
+  return (data ?? []).map((row) => row.material_id as string);
+}
+
+export async function blockSource(pseudonym: string, profileId?: string) {
+  if (!supabase) return;
+  const { error } = await supabase.from("locker_source_blocks").insert({
+    profile_id: profileId || null,
+    device_id: getDeviceId(),
+    blocked_pseudonym: pseudonym,
+  });
+  if (error && !String(error.message).toLowerCase().includes("duplicate")) throw error;
+}
+
+export async function unblockSource(pseudonym: string) {
+  if (!supabase) return;
+  const { error } = await supabase.from("locker_source_blocks").delete().eq("device_id", getDeviceId()).eq("blocked_pseudonym", pseudonym);
+  if (error) throw error;
+}
+
+export async function loadBlockedSources() {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("locker_source_blocks").select("blocked_pseudonym").eq("device_id", getDeviceId());
+  if (error) throw error;
+  return (data ?? []).map((row) => row.blocked_pseudonym as string);
 }
 
 function getDeviceId() {
